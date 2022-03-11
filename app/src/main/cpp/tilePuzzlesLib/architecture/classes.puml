@@ -1,0 +1,11 @@
+@startuml hello
+Engine --> "creates" Camera
+Engine --> "creates" View
+View *-- "1" Scene
+View *-- "1" Camera
+Scene *-- "n" Entity
+Material "1" .. "*" MaterialInstance
+Entity --> "n MaterialInstance" MaterialInstance
+Entity --> "geometry" VertexBuffer
+Entity -->  "geometry" IndexBuffer
+@enduml
