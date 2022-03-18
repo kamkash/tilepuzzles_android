@@ -1,10 +1,12 @@
 #ifndef _HEX_TILE_H_
 #define _HEX_TILE_H_
 
-#ifndef __ANDROID__
+#ifdef __ANDROID__
 
+#include "android_debug.h"
+
+#else
 #include "GLogger.h"
-
 #endif
 
 #include "GeoUtil.h"
@@ -97,10 +99,15 @@ struct HexTile : Tile {
                 (*triangleVertices)[2].position = tri[2];
             }
         }
+
+        if (iniTriangleVertices == nullptr) {
+            iniTriangleVertices = (TriangleVertices *) malloc(sizeof(TriangleVertices));
+            std::copy(std::begin(*triangleVertices), std::end(*triangleVertices),
+                      std::begin(*iniTriangleVertices));
+        }
     }
 
     virtual void updateTexCoords(int texIndex, float texWidth) {
-        texIndex = texIndex % 8;
         (*triangleVertices)[0].texCoords = {texWidth * texIndex, 0};
         (*triangleVertices)[1].texCoords = {texWidth * (texIndex + .9), 0};
         (*triangleVertices)[2].texCoords = {texWidth * (texIndex + .9), .4};
@@ -141,11 +148,11 @@ struct HexTile : Tile {
     }
 
     virtual void logVertices() const {
-//    L.info("TileId", tileId, "isBlank", isBlank, "groupKey", groupKey);
-//    L.info("Grid Coord", gridCoord.x, gridCoord.y);
+//        LOGD("TileId %s groupKey %s", tileId.c_str(), groupKey.c_str());
+//        LOGD("Grid Coord: %f %f", gridCoord.x, gridCoord.y);
         std::for_each(std::begin(*triangleVertices), std::end(*triangleVertices),
                       [](const Vertex &v) {
-//      L.info("pos:", v.position[0], v.position[1], "texCoords:", v.texCoords[0], v.texCoords[1]);
+//                          LOGD("pos: %f %f", v.position[0], v.position[1]);
                       });
     }
 
@@ -173,18 +180,18 @@ struct HexTile : Tile {
     }
 
     bool hasVertex(const math::float2 &vert) {
-        return (abs(getVert<0>().x - vert.x) <= EPS && abs(getVert<0>().y - vert.y) <= EPS) ||
-               (abs(getVert<1>().x - vert.x) <= EPS && abs(getVert<1>().y - vert.y) <= EPS) ||
-               (abs(getVert<2>().x - vert.x) <= EPS && abs(getVert<2>().y - vert.y) <= EPS);
+        return (abs(getVert(0).x - vert.x) <= EPS && abs(getVert(0).y - vert.y) <= EPS) ||
+               (abs(getVert(1).x - vert.x) <= EPS && abs(getVert(1).y - vert.y) <= EPS) ||
+               (abs(getVert(2).x - vert.x) <= EPS && abs(getVert(2).y - vert.y) <= EPS);
     }
 
-    template<int index>
-    math::float3 getVert() {
+    math::float3 getVert(int index) {
         return (*triangleVertices)[index].position;
     }
 
     TriangleVertices *triangleVertices;
     TriangleIndices *triangleIndices;
+    TriangleVertices *iniTriangleVertices = nullptr;
 #ifndef __ANDROID__
     constexpr static Logger
     L = Logger::getLogger();

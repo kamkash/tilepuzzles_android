@@ -142,7 +142,7 @@ struct Mesh {
         }
     }
 
-    void shuffle() {
+    virtual void shuffle() {
         GameUtil::shuffle<T>(tiles);
     }
 
@@ -199,7 +199,7 @@ struct Mesh {
 
     std::tuple<math::float2, std::vector<T>> nearestAnchorGroup(const math::float2 &point) {
         auto init = std::tuple<math::float2, std::vector<T>>({100., 100.}, std::vector<T>());
-        auto res = std::reduce(tileGroups.begin(), tileGroups.end(), init,
+        auto res = std::reduce(tileGroupAnchors.begin(), tileGroupAnchors.end(), init,
                                [&point, this](auto a, auto b) {
                                    math::float2 pointa = std::get<0>(a);
                                    math::float2 pointb = std::get<0>(b);
@@ -218,12 +218,12 @@ struct Mesh {
                      [&point](T &t) { return t.hasVertex(point); });
         if (anchTiles.size() == 6) {
             std::tuple<math::float2, std::vector<T>> t = {point, anchTiles};
-            tileGroups.push_back(t);
+            tileGroupAnchors.push_back(t);
         }
     }
 
     void collectAnchors() {
-        tileGroups.clear();
+        tileGroupAnchors.clear();
         Size size = tiles[0].size;
         int rows = 2 / size.y;
         int columns = 2 / size.x;
@@ -250,7 +250,8 @@ struct Mesh {
     std::shared_ptr<TQuadVertexBuffer> vertexBufferAnchors;
     std::vector<Tile> anchorTiles;
 
-    std::vector<std::tuple<math::float2, std::vector<T>>> tileGroups;
+    std::vector<std::tuple<math::float2, std::vector<T>>> tileGroupAnchors;
+    std::unordered_map<std::string, std::vector<T>> tileGroups;
 #ifndef __ANDROID__
     Logger L;
 #endif

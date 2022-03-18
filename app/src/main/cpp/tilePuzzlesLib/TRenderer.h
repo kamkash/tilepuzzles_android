@@ -265,7 +265,7 @@ struct TRenderer : IRenderer {
 
     virtual Path getBorderTexturePath() {
 #ifndef __ANDROID__
-        //    Path path = FilamentApp::getRootAssetsPath() + "textures/border2.png";
+        Path path = FilamentApp::getRootAssetsPath() + "textures/border2.png";
 #else
         Path path = "textures/border2.png";
 #endif
@@ -304,7 +304,7 @@ struct TRenderer : IRenderer {
         TextureSampler sampler(MinFilter::LINEAR, MagFilter::LINEAR);
 
         // Set up view
-        skybox = Skybox::Builder().color({0., 0., 0., 0.0}).build(*engine);
+        skybox = Skybox::Builder().showSun(true).color({0., 0., 0., 0.}).build(*engine);
         scene->setSkybox(skybox);
         view->setCamera(camera);
         view->setPostProcessingEnabled(false);
@@ -363,10 +363,12 @@ struct TRenderer : IRenderer {
         utils::EntityManager &em = utils::EntityManager::get();
         light = em.create();
         LightManager::Builder(LightManager::Type::SUN)
-                .color({1., 1., 1.})
+                .color({.7, .3, .9})
                 .intensity(200000)
-                .direction({0., .1, 0.})
-                .sunAngularRadius(.55f)
+                .direction({0., 0., -0.6})
+                .sunAngularRadius(.5f)
+                .castShadows(true)
+                .castLight(true)
                 .build(*engine, light);
         scene->addEntity(light);
     }
