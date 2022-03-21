@@ -28,7 +28,7 @@
 #include <filament/View.h>
 #include <filament/Viewport.h>
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include <filamentapp/FilamentApp.h>
 #endif
 
@@ -151,23 +151,23 @@ struct TRenderer : IRenderer {
             needsDraw = false;
             vb->setBufferAt(*engine, 0,
                             VertexBuffer::BufferDescriptor(
-                                    mesh->vertexBuffer->cloneVertices(),
-                                    mesh->vertexBuffer->getSize(),
-                                    (VertexBuffer::BufferDescriptor::Callback) free));
+                                mesh->vertexBuffer->cloneVertices(),
+                                mesh->vertexBuffer->getSize(),
+                                (VertexBuffer::BufferDescriptor::Callback) free));
             scene->remove(renderable);
             auto &rcm = engine->getRenderableManager();
             rcm.destroy(renderable);
 
             RenderableManager::Builder(1)
-                    .boundingBox({{-1, -1, -1},
-                                  {1,  1,  1}})
-                    .material(0, matInstance)
-                    .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0,
-                              mesh->vertexBuffer->numIndices)
-                    .culling(false)
-                    .receiveShadows(false)
-                    .castShadows(false)
-                    .build(*engine, renderable);
+                .boundingBox({{-1, -1, -1},
+                              {1,  1,  1}})
+                .material(0, matInstance)
+                .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0,
+                          mesh->vertexBuffer->numIndices)
+                .culling(false)
+                .receiveShadows(false)
+                .castShadows(false)
+                .build(*engine, renderable);
             scene->addEntity(renderable);
         }
     }
@@ -176,75 +176,56 @@ struct TRenderer : IRenderer {
         if (mesh->hasBorder()) {
             std::shared_ptr<VB> vbBorder = mesh->vertexBufferBorder;
             Path path = getBorderTexturePath();
-
-#ifdef __ANDROID__
-            std::vector<unsigned char> res = IOUtil::loadAndroidBinaryAsset(path.c_str());
-            if (res.empty()) {
-//                L.error("The texture ", path, " does not exist");
-                return;
-            }
-#endif
-
-            int w, h, n;
-#ifndef __ANDROID__
-            unsigned char *data = ::stbi_load(path.c_str(), &w, &h, &n, 4);
-#else
-            unsigned char *data = stbi_load_from_memory(res.data(), res.size(), &w, &h, &n, 4);
-            if (data == nullptr) {
-//                L.error("The texture ", path, " could not be loaded");
-                return;
-            }
-#endif
-//            L.info("Loaded texture: y", w, "x", h);
+            IOUtil::img_data data = IOUtil::imageLoad(path.c_str(), 4);
             Texture::PixelBufferDescriptor buffer(
-                    data, size_t(w * h * 4), Texture::Format::RGBA, Texture::Type::UBYTE,
-                    (Texture::PixelBufferDescriptor::Callback) &::stbi_image_free);
+                data.data, size_t(data.width * data.height * 4), Texture::Format::RGBA, Texture::Type::UBYTE,
+                (Texture::PixelBufferDescriptor::Callback) &::stbi_image_free);
 
             static_assert(sizeof(Vertex) == (4 * 3) + (4 * 3) + (4 * 2),
                           "Strange vertex size.");
             borderTex = Texture::Builder()
-                    .width(uint32_t(w))
-                    .height(uint32_t(h))
-                    .levels(1)
-                    .sampler(Texture::Sampler::SAMPLER_2D)
-                    .format(Texture::InternalFormat::RGBA8)
-                    .build(*engine);
+                .width(uint32_t(data.width))
+                .height(uint32_t(data.height))
+                .levels(1)
+                .sampler(Texture::Sampler::SAMPLER_2D)
+                .format(Texture::InternalFormat::RGBA8)
+                .build(*engine);
             borderTex->setImage(*engine, 0, std::move(buffer));
             TextureSampler sampler(MinFilter::LINEAR, MagFilter::LINEAR);
             // Create quad renderable
             borderVb = VertexBuffer::Builder()
-                    .vertexCount(vbBorder->numVertices)
-                    .bufferCount(1)
-                    .attribute(VertexAttribute::POSITION, 0,
-                               VertexBuffer::AttributeType::FLOAT3, 0, 32)
-                    .attribute(VertexAttribute::UV0, 0,
-                               VertexBuffer::AttributeType::FLOAT3, 24, 32)
-                    .build(*engine);
+                .vertexCount(vbBorder->numVertices)
+                .bufferCount(1)
+                .attribute(VertexAttribute::POSITION, 0,
+                           VertexBuffer::AttributeType::FLOAT3, 0, 32)
+                .attribute(VertexAttribute::UV0, 0,
+                           VertexBuffer::AttributeType::FLOAT3, 24, 32)
+                .build(*engine);
             borderVb->setBufferAt(*engine, 0,
                                   VertexBuffer::BufferDescriptor(vbBorder->vertShapes,
                                                                  vbBorder->getSize(),
                                                                  nullptr));
             borderIb = IndexBuffer::Builder()
-                    .indexCount(vbBorder->numIndices)
-                    .bufferType(IndexBuffer::IndexType::USHORT)
-                    .build(*engine);
+                .indexCount(vbBorder->numIndices)
+                .bufferType(IndexBuffer::IndexType::USHORT)
+                .build(*engine);
             borderIb->setBuffer(*engine, IndexBuffer::BufferDescriptor(
-                    vbBorder->indexShapes,
-                    vbBorder->getIndexSize(), nullptr));
+                vbBorder->indexShapes,
+                vbBorder->getIndexSize(), nullptr));
 
             borderMatInstance = material->createInstance();
             borderMatInstance->setParameter("albedo", borderTex, sampler);
             borderRenderable = EntityManager::get().create();
             RenderableManager::Builder(1)
-                    .boundingBox({{-1, -1, -1},
-                                  {1,  1,  1}})
-                    .material(0, borderMatInstance)
-                    .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, borderVb,
-                              borderIb, 0, vbBorder->numIndices)
-                    .culling(false)
-                    .receiveShadows(false)
-                    .castShadows(false)
-                    .build(*engine, borderRenderable);
+                .boundingBox({{-1, -1, -1},
+                              {1,  1,  1}})
+                .material(0, borderMatInstance)
+                .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, borderVb,
+                          borderIb, 0, vbBorder->numIndices)
+                .culling(false)
+                .receiveShadows(false)
+                .castShadows(false)
+                .build(*engine, borderRenderable);
             scene->addEntity(borderRenderable);
         }
     }
@@ -255,51 +236,31 @@ struct TRenderer : IRenderer {
     }
 
     virtual Path getTilesTexturePath() {
-#ifndef __ANDROID__
-        Path path = FilamentApp::getRootAssetsPath() + "textures/1-30c.png";
-#else
-        Path path = "textures/1-30c.png";
-#endif
+        Path path = IOUtil::getTexturePath("1-30c.png");
         return path;
     }
 
     virtual Path getBorderTexturePath() {
-#ifndef __ANDROID__
-        Path path = FilamentApp::getRootAssetsPath() + "textures/border2.png";
-#else
-        Path path = "textures/border2.png";
-#endif
+        Path path = IOUtil::getTexturePath("border2.png");
         return path;
     }
 
     void drawTiles() {
         Path path = getTilesTexturePath();
-        std::vector<unsigned char> res = IOUtil::loadAndroidBinaryAsset(path.c_str());
-        if (!res.size()) {
-//            L.error("The texture ", path, " does not exist");
-            return;
-        }
-        int w, h, n;
-//        unsigned char *data = ::stbi_load(path.c_str(), &w, &h, &n, 4);
-        unsigned char *data = stbi_load_from_memory(res.data(), res.size(), &w, &h, &n, 4);
-        if (data == nullptr) {
-//            L.error("The texture ", path, " could not be loaded");
-            return;
-        }
-//        L.info("Loaded texture: y", w, "x", h);
+        IOUtil::img_data data = IOUtil::imageLoad(path.c_str(), 4);
         Texture::PixelBufferDescriptor buffer(
-                data, size_t(w * h * 4), Texture::Format::RGBA, Texture::Type::UBYTE,
-                (Texture::PixelBufferDescriptor::Callback) &::stbi_image_free);
+            data.data, size_t(data.width * data.height * 4), Texture::Format::RGBA, Texture::Type::UBYTE,
+            (Texture::PixelBufferDescriptor::Callback) &::stbi_image_free);
 
         static_assert(sizeof(Vertex) == (4 * 3) + (4 * 3) + (4 * 2),
                       "Strange vertex size.");
         tex = Texture::Builder()
-                .width(uint32_t(w))
-                .height(uint32_t(h))
-                .levels(1)
-                .sampler(Texture::Sampler::SAMPLER_2D)
-                .format(Texture::InternalFormat::RGBA8)
-                .build(*engine);
+            .width(uint32_t(data.width))
+            .height(uint32_t(data.height))
+            .levels(1)
+            .sampler(Texture::Sampler::SAMPLER_2D)
+            .format(Texture::InternalFormat::RGBA8)
+            .build(*engine);
         tex->setImage(*engine, 0, std::move(buffer));
         TextureSampler sampler(MinFilter::LINEAR, MagFilter::LINEAR);
 
@@ -311,31 +272,27 @@ struct TRenderer : IRenderer {
 
         // Create quad renderable
         vb = VertexBuffer::Builder()
-                .vertexCount(mesh->vertexBuffer->numVertices)
-                .bufferCount(1)
-                .attribute(VertexAttribute::POSITION, 0,
-                           VertexBuffer::AttributeType::FLOAT3, 0, 32)
-                .attribute(VertexAttribute::UV0, 0,
-                           VertexBuffer::AttributeType::FLOAT3, 24, 32)
-                .build(*engine);
+            .vertexCount(mesh->vertexBuffer->numVertices)
+            .bufferCount(1)
+            .attribute(VertexAttribute::POSITION, 0,
+                       VertexBuffer::AttributeType::FLOAT3, 0, 32)
+            .attribute(VertexAttribute::UV0, 0,
+                       VertexBuffer::AttributeType::FLOAT3, 24, 32)
+            .build(*engine);
         vb->setBufferAt(
-                *engine, 0,
-                VertexBuffer::BufferDescriptor(mesh->vertexBuffer->vertShapes,
-                                               mesh->vertexBuffer->getSize(), nullptr));
+            *engine, 0,
+            VertexBuffer::BufferDescriptor(mesh->vertexBuffer->vertShapes,
+                                           mesh->vertexBuffer->getSize(), nullptr));
         ib = IndexBuffer::Builder()
-                .indexCount(mesh->vertexBuffer->numIndices)
-                .bufferType(IndexBuffer::IndexType::USHORT)
-                .build(*engine);
+            .indexCount(mesh->vertexBuffer->numIndices)
+            .bufferType(IndexBuffer::IndexType::USHORT)
+            .build(*engine);
         ib->setBuffer(*engine, IndexBuffer::BufferDescriptor(
-                mesh->vertexBuffer->indexShapes,
-                mesh->vertexBuffer->getIndexSize(), nullptr));
+            mesh->vertexBuffer->indexShapes,
+            mesh->vertexBuffer->getIndexSize(), nullptr));
 
-#ifndef __ANDROID__
-        Path matPath = FilamentApp::getRootAssetsPath() + "textures/bakedTextureOpaque.filamat";
-#else
-        Path matPath = "materials/bakedTextureOpaque.filamat";
-#endif
-        std::vector<unsigned char> mat = IOUtil::loadAndroidBinaryAsset(matPath.c_str());
+        Path matPath = IOUtil::getMaterialPath("bakedTextureOpaque.filamat");
+        std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
         material = Material::Builder().package(mat.data(), mat.size()).build(*engine);
         matInstance = material->createInstance();
         matInstance->setParameter("albedo", tex, sampler);
@@ -346,13 +303,13 @@ struct TRenderer : IRenderer {
 
         renderable = EntityManager::get().create();
         RenderableManager::Builder(1)
-                .boundingBox({{-1, -1, -1},
-                              {1,  1,  1}})
-                .material(0, matInstance)
-                .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0,
-                          mesh->vertexBuffer->numIndices)
-                .culling(false)
-                .build(*engine, renderable);
+            .boundingBox({{-1, -1, -1},
+                          {1,  1,  1}})
+            .material(0, matInstance)
+            .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0,
+                      mesh->vertexBuffer->numIndices)
+            .culling(false)
+            .build(*engine, renderable);
 
         scene->addEntity(renderable);
         const float aspect = getAspectRatio();
@@ -363,24 +320,24 @@ struct TRenderer : IRenderer {
         utils::EntityManager &em = utils::EntityManager::get();
         light = em.create();
         LightManager::Builder(LightManager::Type::SUN)
-                .color({.7, .3, .9})
-                .intensity(200000)
-                .direction({0., 0., -0.6})
-                .sunAngularRadius(.5f)
-                .castShadows(true)
-                .castLight(true)
-                .build(*engine, light);
+            .color({.7, .3, .9})
+            .intensity(200000)
+            .direction({0., 0., -0.6})
+            .sunAngularRadius(.5f)
+            .castShadows(true)
+            .castLight(true)
+            .build(*engine, light);
         scene->addEntity(light);
     }
 
     virtual void animate(double now) {
         auto &tcm = engine->getTransformManager();
         tcm.setTransform(
-                tcm.getInstance(renderable),
-                filament::math::mat4f::rotation(now, filament::math::float3{1, 0, 0}));
+            tcm.getInstance(renderable),
+            filament::math::mat4f::rotation(now, filament::math::float3{1, 0, 0}));
         tcm.setTransform(
-                tcm.getInstance(borderRenderable),
-                filament::math::mat4f::rotation(now, filament::math::float3{1, 0, 0}));
+            tcm.getInstance(borderRenderable),
+            filament::math::mat4f::rotation(now, filament::math::float3{1, 0, 0}));
     }
 
     virtual void shuffle() {
@@ -405,7 +362,7 @@ struct TRenderer : IRenderer {
 
     std::shared_ptr<Mesh<VB, T>> mesh;
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
     Logger L;
 #endif
     Texture *tex;

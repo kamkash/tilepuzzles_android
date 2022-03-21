@@ -1,7 +1,7 @@
 #ifndef _ROLLER_MESH_H_
 #define _ROLLER_MESH_H_
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
 #include "Mesh.h"

@@ -1,7 +1,7 @@
 #ifndef _HEX_SPIN_MESH_H_
 #define _HEX_SPIN_MESH_H_
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
 

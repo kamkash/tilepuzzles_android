@@ -3,7 +3,7 @@
 
 #include "ConfigMgr.h"
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
 
@@ -252,7 +252,7 @@ struct Mesh {
 
     std::vector<std::tuple<math::float2, std::vector<T>>> tileGroupAnchors;
     std::unordered_map<std::string, std::vector<T>> tileGroups;
-#ifndef __ANDROID__
+#ifdef USE_SDL
     Logger L;
 #endif
 };

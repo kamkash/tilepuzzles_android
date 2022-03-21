@@ -1,6 +1,6 @@
 #ifndef _TVERTEX_BUFFER_H_
 #define _TVERTEX_BUFFER_H_
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
 
@@ -61,7 +61,7 @@ struct TVertexBuffer {
     int numIndices = 0;
     size_t size = 0;
     size_t indexSize = 0;
-#ifndef __ANDROID__
+#ifdef USE_SDL
     constexpr static Logger L = Logger::getLogger();
 #endif
 };

@@ -35,7 +35,7 @@ Java_net_kamkash_tilepuzzles_MainActivity_resizeWindow(JNIEnv *env, jobject /* t
 extern "C" JNIEXPORT void JNICALL
 Java_net_kamkash_tilepuzzles_MainActivity_init(JNIEnv *env, jobject /* this */, jobject jAssetMgr) {
     androidContext.assetManager = AAssetManager_fromJava(env, jAssetMgr);
-    init(&androidContext);
+    init((GameContext *) &androidContext);
 }
 
 extern "C" JNIEXPORT void JNICALL

@@ -1,12 +1,12 @@
 #ifndef _HEX_TILE_H_
 #define _HEX_TILE_H_
 
-#ifdef __ANDROID__
+#ifdef USE_SDL
+#include "GLogger.h"
+#else
 
 #include "android_debug.h"
 
-#else
-#include "GLogger.h"
 #endif
 
 #include "GeoUtil.h"
@@ -26,14 +26,14 @@ struct HexTile : Tile {
     HexTile(const std::string &id, const Point &topLeft, const Size &size, TriangleVertices *pQuad,
             TriangleIndices *pIndices, int texIndex, float texWidth, int indexOffset,
             const math::int2 &gridCoord, int tileNum)
-            : Tile(id), triangleVertices(pQuad), triangleIndices(pIndices) {
+        : Tile(id), triangleVertices(pQuad), triangleIndices(pIndices) {
         this->topLeft = topLeft;
         this->size = size;
         this->gridCoord = gridCoord;
         this->tileNum = tileNum;
         initVertices(texIndex, texWidth);
         initIndices(indexOffset);
-        // logVertices();
+        logVertices();
     }
 
     virtual void initIndices(int indexOffset) {
@@ -53,13 +53,13 @@ struct HexTile : Tile {
         }
 
         const math::float3 tri[] = {
-                {topLeft[0],                topLeft[1] - size[1], 0.},           // bottom left
-                {topLeft[0] + size[0],      topLeft[1] - size[1], 0.}, // bottom right
-                {topLeft[0] + .5 * size[0], topLeft[1],           0.}       // top
+            {topLeft[0],                topLeft[1] - size[1], 0.},           // bottom left
+            {topLeft[0] + size[0],      topLeft[1] - size[1], 0.}, // bottom right
+            {topLeft[0] + .5 * size[0], topLeft[1],           0.}       // top
         };
 
         const math::float3 offset =
-                -1. * math::float3({topLeft[0] + size[0] * .5, topLeft[1] - size[1], 0.});
+            -1. * math::float3({topLeft[0] + size[0] * .5, topLeft[1] - size[1], 0.});
         const math::float3 yoffset = {0., size[1], 0.};
 
         math::float3 invTri[] = {geo.rotate(tri[0], math::F_PI, {0., 0., 1.}, offset),
@@ -148,28 +148,32 @@ struct HexTile : Tile {
     }
 
     virtual void logVertices() const {
-//        LOGD("TileId %s groupKey %s", tileId.c_str(), groupKey.c_str());
-//        LOGD("Grid Coord: %f %f", gridCoord.x, gridCoord.y);
+#ifdef USE_SDL
+        L.info("TileId %s groupKey %s", tileId.c_str(), groupKey.c_str());
+        L.info("Grid Coord: %f %f", gridCoord.x, gridCoord.y);
         std::for_each(std::begin(*triangleVertices), std::end(*triangleVertices),
                       [](const Vertex &v) {
-//                          LOGD("pos: %f %f", v.position[0], v.position[1]);
+                        L.info("pos: %f %f", v.position[0], v.position[1]);
                       });
+#endif
     }
 
     void logIndices() const {
-//    L.info("TileId", tileId, "isBlank", isBlank);
+#ifdef USE_SDL
+        L.info("TileId", tileId, "isBlank", isBlank);
         std::for_each(std::begin(*triangleIndices), std::end(*triangleIndices),
                       [](const uint16_t &idx) {
-                          //L.info("index:", idx);
+                        L.info("index:", idx);
                       });
+#endif
     }
 
     virtual void rotateAtAnchor(math::float2 anch, float angle) {
         const math::float3 offset = -1. * math::float3({anch.x, anch.y, 0.});
         math::float3 rotTri[] = {
-                geo.rotate((*triangleVertices)[0].position, angle, {0., 0., 1.}, offset),
-                geo.rotate((*triangleVertices)[1].position, angle, {0., 0., 1.}, offset),
-                geo.rotate((*triangleVertices)[2].position, angle, {0., 0., 1.}, offset)};
+            geo.rotate((*triangleVertices)[0].position, angle, {0., 0., 1.}, offset),
+            geo.rotate((*triangleVertices)[1].position, angle, {0., 0., 1.}, offset),
+            geo.rotate((*triangleVertices)[2].position, angle, {0., 0., 1.}, offset)};
         (*triangleVertices)[0].position = rotTri[0];
         (*triangleVertices)[1].position = rotTri[1];
         (*triangleVertices)[2].position = rotTri[2];

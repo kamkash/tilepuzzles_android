@@ -1,11 +1,12 @@
 #ifndef _TAPPWIN_H_
 #define _TAPPWIN_H_
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
+#include <SDL.h>
 #include "GLogger.h"
+#include <SDL.h>
 #endif
 
-#include "AndroidContext.h"
 #include "GameUtil.h"
 #include "HexSpinRenderer.h"
 #include "IRenderer.h"
@@ -19,6 +20,7 @@
 #include <filament/Engine.h>
 #include <filament/IndexBuffer.h>
 #include <filament/IndirectLight.h>
+#include <filament/LightManager.h>
 #include <filament/Material.h>
 #include <filament/MaterialInstance.h>
 #include <filament/RenderableManager.h>
@@ -31,9 +33,8 @@
 #include <filament/VertexBuffer.h>
 #include <filament/View.h>
 #include <filament/Viewport.h>
-#include <filament/LightManager.h>
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include <filamentapp/FilamentApp.h>
 #endif
 
@@ -41,6 +42,7 @@
 #include <filamentapp/NativeWindowHelper.h>
 #include <filameshio/MeshReader.h>
 #include <math/mat4.h>
+#include <stb_image.h>
 #include <utils/EntityManager.h>
 #include <utils/Panic.h>
 #include <utils/Path.h>
@@ -64,7 +66,7 @@ static constexpr int ACTION_DOWN = 0;
 static constexpr int ACTION_UP = 1;
 static constexpr int ACTION_MOVE = 2;
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 static constexpr uint32_t WINDOW_FLAGS = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
 #endif
 
@@ -75,52 +77,53 @@ struct TAppWin {
         }
     }
 
-    void createSwapChain(void *nativeWindow) {
+  void createSwapChain(void* nativeWindow) {
         if (renderer != nullptr) {
             renderer->createSwapChain(nativeWindow);
         }
     }
 
     void init() {
-#ifndef __ANDROID__
+#ifdef USE_SDL
         ASSERT_POSTCONDITION(SDL_Init(SDL_INIT_EVENTS) == 0, "SDL_Init Failure");
-#endif
+        GameUtil::init();
+        createRenderer();
+        renderer->init();
+        createWinow();
+        setup_window();
+        setup_animating_scene();
+    game_loop(0.);
+        cleanup();
+#else
         GameUtil::init();
         createRenderer();
         renderer->init();
         setup_animating_scene();
-
-#ifndef __ANDROID__
-        createWinow();
-        setup_window();
-        setup_animating_scene();
-        game_loop();
-        cleanup();
 #endif
     }
 
     void createWinow() {
         auto title = std::string("Tile Puzzles");
-#ifndef __ANDROID__
-        sdl_window = SDL_CreateWindow(title.c_str(), WINDOW_X_POS, WINDOW_Y_POS,
-          WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_FLAGS);
+#ifdef USE_SDL
+    sdl_window =
+      SDL_CreateWindow(title.c_str(), WINDOW_X_POS, WINDOW_Y_POS, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_FLAGS);
 #endif
     }
 
-    AndroidContext *getContext() {
-        return androidContext;
+  GameContext* getContext() {
+        return gameContext;
     }
 
     void cleanup() {
         destroy_window();
-#ifndef __ANDROID__
+#ifdef USE_SDL
         SDL_Quit();
 #endif
     }
 
     void destroy_window() {
         renderer->destroy();
-#ifndef __ANDROID__
+#ifdef USE_SDL
         SDL_DestroyWindow(sdl_window);
 #endif
     }
@@ -143,7 +146,7 @@ struct TAppWin {
      * @param win
      * @param dt
      */
-    static void animation_new_frame(TAppWin &win, double dt) {
+  static void animation_new_frame(TAppWin& win, double dt) {
         if (win.renderer->getSwapChain()) {
             win.renderer->update(dt);
             // win.renderer->animate(dt);
@@ -152,12 +155,12 @@ struct TAppWin {
     }
 
     void setup_window() {
-#ifndef __ANDROID__
+#ifdef USE_SDL
         void* nativeWindow = ::getNativeWindow(sdl_window);
         void* nativeSwapChain = nativeWindow;
 #endif
 #if defined(__APPLE__)
-        void *metalLayer = nullptr;
+    void* metalLayer = nullptr;
         if (kBackend == filament::Engine::Backend::METAL) {
           metalLayer = setUpMetalLayer(nativeWindow);
           // The swap chain on Metal is a CAMetalLayer.
@@ -170,15 +173,17 @@ struct TAppWin {
         }
 #endif
 #endif
-#ifndef __ANDROID__
+#ifdef USE_SDL
         swapChain = renderer->createSwapChain(nativeSwapChain);
+    int width, height;
+    SDL_GetWindowSize(sdl_window, &width, &height);
+    resize_window(width, height);
 #endif
-        resize_window(0, 0);
     }
 
     void resize_window(int width, int height) {
 #if defined(__APPLE__)
-        void *nativeWindow = ::getNativeWindow(sdl_window);
+    void* nativeWindow = ::getNativeWindow(sdl_window);
         if (kBackend == filament::Engine::Backend::METAL) {
           resizeMetalLayer(nativeWindow);
         }
@@ -217,24 +222,8 @@ struct TAppWin {
         }
     }
 
-#ifdef __ANDROID__
-
-    void game_loop(double t) {
-        if (renderer && renderer->getSwapChain()) {
-            if (onNewFrame) {
-                onNewFrame(*this, t);
-            }
-
-            if (needsDraw) {
-                renderer->filaRender();
-                needsDraw = false;
-                lastDrawTime = t;
-            }
-        }
-    }
-
-#else
-    void game_loop() {
+#ifdef USE_SDL
+  void game_loop(double t) {
 
             size_t nClosed = 0;
             SDL_Event event;
@@ -259,8 +248,8 @@ struct TAppWin {
 
                   case SDL_MOUSEMOTION:
                     if (buttonDown) {
-                      filament::math::float2 pos = {float(event.motion.x),
-           float(event.motion.y)}; renderer->onMouseMove(pos);
+              filament::math::float2 pos = {float(event.motion.x), float(event.motion.y)};
+              renderer->onMouseMove(pos);
                     }
                     break;
 
@@ -268,24 +257,27 @@ struct TAppWin {
 
                     switch (event.button.button) {
                       case SDL_BUTTON_LEFT: {
-                        math::float2 mouseDownPos = {float(event.button.x),
-           float(event.button.y)}; renderer->onMouseDown(mouseDownPos); buttonDown =
-           true; break;
+                math::float2 mouseDownPos = {float(event.button.x), float(event.button.y)};
+                renderer->onMouseDown(mouseDownPos);
+           buttonDown = true;
+           break;
                       }
 
                       case SDL_BUTTON_RIGHT:
                         // renderer->shuffle();
-                        math::float2 mouseDownPos = {float(event.button.x),
-           float(event.button.y)}; renderer->onRightMouseDown(mouseDownPos); break;
+                math::float2 mouseDownPos = {float(event.button.x), float(event.button.y)};
+                renderer->onRightMouseDown(mouseDownPos);
+           break;
                     }
                     break;
 
                   case SDL_MOUSEBUTTONUP:
                     switch (event.button.button) {
                       case SDL_BUTTON_LEFT: {
-                        math::float2 mouseUpPos = {float(event.button.x),
-           float(event.button.y)}; renderer->onMouseUp(mouseUpPos); buttonDown =
-           false; break;
+                math::float2 mouseUpPos = {float(event.button.x), float(event.button.y)};
+                renderer->onMouseUp(mouseUpPos);
+                buttonDown = false;
+                break;
                       }
 
                       case SDL_BUTTON_RIGHT:
@@ -297,7 +289,7 @@ struct TAppWin {
                     switch (event.window.event) {
                       case SDL_WINDOWEVENT_RESIZED:
                         if (event.window.windowID == SDL_GetWindowID(sdl_window)) {
-                          resize_window();
+                  resize_window(event.window.data1, event.window.data2);
                           break;
                         }
                         break;
@@ -317,8 +309,8 @@ struct TAppWin {
                 }
               }
               Uint64 endTicks = SDL_GetPerformanceCounter();
-              const double dt = lastTime > 0 ? (double(endTicks - lastTime) /
-           kCounterFrequency) : (1.0 / 60.0); lastTime = endTicks;
+      const double dt = lastTime > 0 ? (double(endTicks - lastTime) / kCounterFrequency) : (1.0 / 60.0);
+      lastTime = endTicks;
 
               time += dt;
               if (onNewFrame) {
@@ -337,25 +329,40 @@ struct TAppWin {
               float delay = floor(16.666f - frameTime);
               SDL_Delay(delay);
             }
-            **/
     }
+#else
+
+    void game_loop(double t) {
+        if (renderer && renderer->getSwapChain()) {
+            if (onNewFrame) {
+                onNewFrame(*this, t);
+            }
+
+            if (needsDraw) {
+                renderer->filaRender();
+                needsDraw = false;
+                lastDrawTime = t;
+            }
+        }
+    }
+
 #endif
 
 #if defined(__APPLE__)
     Engine::Backend kBackend = filament::Engine::Backend::METAL;
 #endif
 
-    std::function<void(TAppWin &, double)> onNewFrame;
-#ifndef __ANDROID__
+  std::function<void(TAppWin&, double)> onNewFrame;
+#ifdef USE_SDL
     SDL_Window* sdl_window = nullptr;
 #endif
     bool needsDraw = true;
     double time = 0.0;
     double lastDrawTime = 0.0;
     std::shared_ptr<IRenderer> renderer;
-    SwapChain *swapChain = nullptr;
-    AndroidContext *androidContext;
-#ifndef __ANDROID__
+  SwapChain* swapChain = nullptr;
+  GameContext* gameContext;
+#ifdef USE_SDL
     Logger L;
 #endif
 };

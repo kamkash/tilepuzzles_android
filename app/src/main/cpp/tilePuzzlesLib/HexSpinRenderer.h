@@ -3,12 +3,10 @@
 
 #include "App.h"
 
-#ifdef __ANDROID__
-
-#include "android_debug.h"
-
-#else
+#ifdef USE_SDL
 #include "GLogger.h"
+#else
+#include "android_debug.h"
 #endif
 
 #include "HexSpinMesh.h"
@@ -43,8 +41,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     virtual void onMouseMove(const float2 &dragPosition) {
         if (dragTile) {
             math::float3 clipCoord = normalizeViewCoord(dragPosition);
-//            HexTile *newTile = mesh->hitTest(clipCoord);
-//            if (newTile && !newTile->equals(dragTile)) {
             float2 anchor = std::get<0>(dragAnchor);
             math::float3 anchVec = {dragTile->size.x, 0., 0.};
             math::float3 posVec = geo.translate(clipCoord,
@@ -78,7 +74,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
                 needsDraw = true;
             }
             lastNormalVec = pNormal;
-//            }
         }
     }
 
@@ -98,7 +93,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     }
 
     virtual HexTile *onMouseUp(const math::float2 &pos) {
-        logDragAnchor();
         float angle = snapToAngle();
         if (angle != 0.) {
             mesh->rotateTileGroup(dragAnchor, angle);
@@ -129,7 +123,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
             // snap back
             angle = -rotationAngle;
         }
-        LOGD("mouseUpAngle: %f", angle);
         return angle;
     }
 
@@ -156,31 +149,13 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     }
 
 
-    void logDragAnchor() {
-        auto pt = std::get<0>(dragAnchor);
-        std::vector<HexTile> tileGroup = std::get<1>(dragAnchor);
-        LOGD("anchorPoint: %f %f rotationAngle: %f %f", pt.x, pt.y, rotationAngle,
-             rotationAngle / PI_3);
-        std::for_each(tileGroup.begin(), tileGroup.end(),
-                      [](const HexTile &t) { t.logVertices(); });
-    }
-
     virtual Path getTilesTexturePath() {
-#ifndef __ANDROID__
-        Path path = FilamentApp::getRootAssetsPath() + "textures/1-30color.png";
-#else
-        Path path = "textures/1-30color1.png";
-#endif
+        Path path = IOUtil::getTexturePath("1-30color.png");
         return path;
     }
 
     virtual Path getAnchorTexturePath() {
-#ifndef __ANDROID__
-        Path path = FilamentApp::getRootAssetsPath() + "textures/gear1.png";
-#else
-        Path path = "textures/gear1.png";
-#endif
-
+        Path path = IOUtil::getTexturePath("gear1.png");
         return path;
     }
 
@@ -191,26 +166,15 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
     void drawAnchors() {
         Path path = getAnchorTexturePath();
-        int w, h, n;
-#ifndef __ANDROID__
-        unsigned char* data = ::stbi_load(path.c_str(), &w, &h, &n, 4
-#else
-        std::vector<unsigned char> res = IOUtil::loadAndroidBinaryAsset(path.c_str());
-#endif
-        if (res.empty()) {
-//      L.error("The texture ", path, " could not be loaded");
-            return;
-        }
-        unsigned char *data = stbi_load_from_memory(res.data(), res.size(), &w, &h, &n, 4);
-//    L.info("Loaded texture: y", w, "x", h);
-        Texture::PixelBufferDescriptor buffer(data, size_t(w * h * 4), Texture::Format::RGBA,
+        IOUtil::img_data data = IOUtil::imageLoad(path.c_str(), 4);
+        Texture::PixelBufferDescriptor buffer(data.data, size_t(data.width * data.height * 4), Texture::Format::RGBA,
                                               Texture::Type::UBYTE,
                                               (Texture::PixelBufferDescriptor::Callback) &::stbi_image_free);
 
         static_assert(sizeof(Vertex) == (4 * 3) + (4 * 3) + (4 * 2), "Strange vertex size.");
         anchTex = Texture::Builder()
-            .width(uint32_t(w))
-            .height(uint32_t(h))
+            .width(uint32_t(data.width))
+            .height(uint32_t(data.height))
             .levels(1)
             .sampler(Texture::Sampler::SAMPLER_2D)
             .format(Texture::InternalFormat::RGBA8)
@@ -237,13 +201,8 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
                                                         mesh->vertexBufferAnchors->getIndexSize(),
                                                         nullptr));
 
-#ifndef __ANDROID__
-        Path matPath = FilamentApp::getRootAssetsPath() + "textures/bakedTextureLit.filamat";
-#else
-        Path matPath = "materials/bakedTextureLit.filamat";
-#endif
-        std::vector<unsigned char> mat = IOUtil::loadAndroidBinaryAsset(matPath.c_str());
-//    L.info("bakedTextureLit size", mat.size());
+        Path matPath = IOUtil::getMaterialPath("bakedTextureLit.filamat");
+        std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
         anchMaterial = Material::Builder().package(mat.data(), mat.size()).build(*engine);
 
         anchMatInstance = anchMaterial->createInstance();
@@ -298,7 +257,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     std::tuple<math::float2, std::vector<HexTile>> dragAnchor;
     GeoUtil::GeoUtil geo;
     float rotationAngle = 0.;
-//    static constexpr float ROTATION_ANGLE = math::F_PI / 3.;
     static constexpr float ROTATION_ANGLE = math::F_PI / 20.;
     static constexpr float PI_3 = math::F_PI / 3.;
     constexpr static float EPS = 0.1F;

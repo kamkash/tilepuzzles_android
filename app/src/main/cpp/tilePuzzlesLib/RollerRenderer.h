@@ -3,7 +3,7 @@
 
 #include "App.h"
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
 

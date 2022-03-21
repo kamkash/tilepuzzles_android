@@ -3,7 +3,7 @@
 
 #include <nlohmann/json.hpp>
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
 
@@ -35,7 +35,7 @@ struct ConfigMgr {
     }
 
     json config;
-#ifndef __ANDROID__
+#ifdef USE_SDL
     constexpr static Logger L = Logger::getLogger();
 #endif
 };

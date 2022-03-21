@@ -1,35 +1,33 @@
 #include <nlohmann/json.hpp>
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
-
-#include "AndroidContext.h"
 #include "TAppWin.h"
 #include "tilePuzzelsLib.h"
-#include "AssetUtil.h"
-#include "android_debug.h"
 
 #ifdef __ANDROID__
+#include "AssetUtil.h"
+#endif
+
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <stb_image.h>
 
-#endif
 
 using namespace tilepuzzles;
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 static Logger L;
 #endif
 static TAppWin app;
 
-AndroidContext *getContext() {
-    return app.androidContext;
+GameContext *getContext() {
+    return app.gameContext;
 }
 
 void initLogger() {
-#ifndef __ANDROID__
+#ifdef USE_SDL
     Logger::initLogger("tilePuzzlesLib");
     L = Logger::getLogger();
 #endif
@@ -37,8 +35,8 @@ void initLogger() {
 
 void initApp() { app.init(); }
 
-void init(AndroidContext *androidContext) {
-    app.androidContext = androidContext;
+void init(GameContext *context) {
+    app.gameContext = context;
     initLogger();
     initApp();
 }

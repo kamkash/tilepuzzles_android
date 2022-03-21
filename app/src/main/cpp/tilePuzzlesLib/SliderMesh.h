@@ -1,7 +1,7 @@
 #ifndef _SLIDER_MESH_H_
 #define _SLIDER_MESH_H_
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
 #include "GLogger.h"
 #endif
 
@@ -48,7 +48,7 @@ struct SliderMesh : Mesh<TQuadVertexBuffer, Tile> {
 
     virtual Tile *const blankTile() {
         auto tileIter =
-                std::find_if(tiles.begin(), tiles.end(), [](const Tile &t) { return t.isBlank; });
+            std::find_if(tiles.begin(), tiles.end(), [](const Tile &t) { return t.isBlank; });
         if (tileIter != tiles.end()) {
             int index = std::distance(tiles.begin(), tileIter);
             return &tiles[index];
@@ -114,16 +114,18 @@ struct SliderMesh : Mesh<TQuadVertexBuffer, Tile> {
         Tile *blank = blankTile();
         if (blank) {
             res =
-                    blank->gridCoord.x == tile.gridCoord.x
-                    ? blank->gridCoord.y > tile.gridCoord.y ? Direction::right : Direction::left
-                    : blank->gridCoord.y == tile.gridCoord.y
-                      ? blank->gridCoord.x > tile.gridCoord.x ? Direction::down : Direction::up
-                      : Direction::none;
+                blank->gridCoord.x == tile.gridCoord.x
+                ? blank->gridCoord.y > tile.gridCoord.y ? Direction::right : Direction::left
+                : blank->gridCoord.y == tile.gridCoord.y
+                  ? blank->gridCoord.x > tile.gridCoord.x ? Direction::down : Direction::up
+                  : Direction::none;
         }
         return res;
     }
 
-//  constexpr static Logger L = Logger::getLogger();
+#ifdef USE_SDL
+    constexpr static Logger L = Logger::getLogger();
+#endif
 };
 } // namespace tilepuzzles
 #endif

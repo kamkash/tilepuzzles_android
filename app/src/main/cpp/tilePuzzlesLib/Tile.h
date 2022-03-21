@@ -1,7 +1,8 @@
 #ifndef _TILE_H_
 #define _TILE_H_
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
+#include <SDL.h>
 #include "GLogger.h"
 #endif
 
@@ -19,8 +20,8 @@ struct Tile {
     Tile(const std::string &id, const Point &topLeft, const Size &size, QuadVertices *pQuad,
          QuadIndices *pIndices, int texIndex, float texWidth, int indexOffset,
          const math::int2 &gridCoord, int tileNum)
-            : tileId(id), topLeft(topLeft), size(size), quadVertices(pQuad), gridCoord(gridCoord),
-              quadIndicies(pIndices), tileNum(tileNum) {
+        : tileId(id), topLeft(topLeft), size(size), quadVertices(pQuad), gridCoord(gridCoord),
+          quadIndicies(pIndices), tileNum(tileNum) {
         initVertices(texIndex, texWidth);
         initIndices(indexOffset);
     }
@@ -29,19 +30,23 @@ struct Tile {
     }
 
     virtual void logVertices() const {
-//    L.info("TileId", tileId, "isBlank", isBlank);
-//    L.info("Grid Coord", gridCoord.x, gridCoord.y);
+#ifdef USE_SDL
+        L.info("TileId", tileId, "isBlank", isBlank);
+        L.info("Grid Coord", gridCoord.x, gridCoord.y);
         std::for_each(std::begin(*quadVertices), std::end(*quadVertices),
                       [](const Vertex &v) {
-//                    L.info("pos:", v.position[0], v.position[1],
-//                           "texCoords:", v.texCoords[0], v.texCoords[1]);
+                        L.info("pos:", v.position[0], v.position[1],
+                               "texCoords:", v.texCoords[0], v.texCoords[1]);
                       });
+#endif
     }
 
     void logIndices() const {
-//    L.info("TileId", tileId, "isBlank", isBlank);
-//    std::for_each(std::begin(*quadIndicies), std::end(*quadIndicies),
-//                  [](const uint16_t& idx) { L.info("index:", idx); });
+#ifdef USE_SDL
+        L.info("TileId", tileId, "isBlank", isBlank);
+        std::for_each(std::begin(*quadIndicies), std::end(*quadIndicies),
+                      [](const uint16_t& idx) { L.info("index:", idx); });
+#endif
     }
 
     void swap(Tile &other) {
@@ -126,7 +131,7 @@ struct Tile {
         // logVertices();
 
         if (iniQuadVertices == nullptr) {
-            iniQuadVertices.reset((QuadVertices *) malloc(sizeof(QuadVertices)));
+            iniQuadVertices = (QuadVertices *) malloc(sizeof(QuadVertices));
             std::copy(std::begin(*quadVertices), std::end(*quadVertices), std::begin(*iniQuadVertices));
         }
     }
@@ -186,7 +191,7 @@ struct Tile {
     QuadVertices *quadVertices = nullptr;
     QuadIndices *quadIndicies = nullptr;
 
-    std::shared_ptr<QuadVertices> iniQuadVertices = nullptr;
+    QuadVertices* iniQuadVertices = nullptr;
 
     Point topLeft;
     Size size;
@@ -194,8 +199,9 @@ struct Tile {
     int tileNum;
     bool isBlank = false;
     math::int2 gridCoord;
-
-//  constexpr static Logger L = Logger::getLogger();
+#ifdef USE_SDL
+  constexpr static Logger L = Logger::getLogger();
+#endif
 };
 
 } // namespace tilepuzzles

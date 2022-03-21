@@ -2,7 +2,9 @@
 #define _SLIDER_RENDERER_H_
 
 #include "App.h"
-//#include "GLogger.h"
+#ifdef USE_SDL
+#include "GLogger.h"
+#endif
 #include "SliderMesh.h"
 #include "TRenderer.h"
 #include "Tile.h"

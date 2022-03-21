@@ -14,7 +14,7 @@ struct ResourceUtil {
     }
 
     std::filesystem::path getResourcePath(const std::string resource) {
-#ifndef __ANDROID__
+#ifdef USE_SDL
         std::filesystem::path wd = getCwd();
         wd /= resource;
         return wd;

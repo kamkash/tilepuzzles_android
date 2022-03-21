@@ -3,10 +3,8 @@
 
 #include "ConfigMgr.h"
 
-#ifndef __ANDROID__
-
+#ifdef USE_SDL
 #include "GLogger.h"
-
 #endif
 
 #include "Renderer.h"
@@ -174,7 +172,7 @@ struct TApp {
     std::shared_ptr <Renderer> renderer;
     std::shared_ptr <Mesh> mesh;
 
-#ifndef __ANDROID__
+#ifdef USE_SDL
     constexpr static Logger L = Logger::getLogger();
 #endif
 };
