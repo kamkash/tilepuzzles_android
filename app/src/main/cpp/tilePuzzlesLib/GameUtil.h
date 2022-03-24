@@ -1,34 +1,42 @@
 #ifndef _GAME_UTIL_H_
 #define _GAME_UTIL_H_
 
+#include "Tile.h"
 #include <stdlib.h>
 #include <time.h>
 #include <vector>
-#include "Tile.h"
 
 namespace tilepuzzles {
-namespace GameUtil {
 
-void init() {
-  std::srand(time(NULL));
-}
+struct GameUtil {
 
-int trand(int min, int max) {
-  return rand() % max + min;
-}
-
-template<typename T>
-void shuffle(std::vector<T>& tiles) {
-  int n = tiles.size();
-  for (int i = n - 1; i >= 1; --i) {
-    int j = trand(0, i);
-    Tile& tilei = tiles[i];
-    Tile& tilej = tiles[j];
-    tilei.swap(tilej);
+  static void init() {
+    std::srand(time(NULL));
   }
-}
 
+  static int trand(int min, int max) {
+    return rand() % max + min;
+  }
 
-} // namespace GameUtil
+  static float frand(float min, float max) {
+    return min + static_cast<float>(rand()) / (static_cast<float>((float)RAND_MAX / (max - min)));
+  }
+
+  static bool coinFlip() {
+    return frand(0., 1.) > 0.5;
+  }
+
+  template <typename T>
+  static void shuffle(std::vector<T>& tiles) {
+    int n = tiles.size();
+    for (int i = n - 1; i >= 1; --i) {
+      int j = trand(0, i);
+      Tile& tilei = tiles[i];
+      Tile& tilej = tiles[j];
+      tilei.swap(tilej);
+    }
+  }
+};
+
 } // namespace tilepuzzles
 #endif

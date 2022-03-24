@@ -136,6 +136,12 @@ struct Tile {
         }
     }
 
+    virtual void setVertexZCoord(float zCoord) {
+        (*quadVertices)[0].position.z = zCoord;
+        (*quadVertices)[1].position.z = zCoord;
+        (*quadVertices)[2].position.z = zCoord;
+        (*quadVertices)[3].position.z = zCoord;
+    }
 
     virtual void updateTexCoords(int texIndex, float texWidth) {
         // bottom left

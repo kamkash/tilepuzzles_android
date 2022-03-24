@@ -9,11 +9,11 @@
 
 namespace tilepuzzles {
 
-template<typename VertexShape, typename IndexShape, int vertsPerShape, int indexPerShape>
+template <typename VertexShape, typename IndexShape, int vertsPerShape, int indexPerShape>
 struct TVertexBuffer {
     TVertexBuffer(int numVertShapes) : numVertShapes(numVertShapes) {
-        vertShapes = (VertexShape *) malloc(numVertShapes * sizeof(VertexShape));
-        indexShapes = (IndexShape *) malloc(numVertShapes * sizeof(IndexShape));
+    vertShapes = (VertexShape*)malloc(numVertShapes * sizeof(VertexShape));
+    indexShapes = (IndexShape*)malloc(numVertShapes * sizeof(IndexShape));
         numVertices = numVertShapes * vertsPerShape;
         numIndices = numVertShapes * indexPerShape;
         size = sizeof(VertexShape) * numVertShapes;
@@ -33,29 +33,28 @@ struct TVertexBuffer {
         return indexSize;
     }
 
-    const VertexShape *put(int index, const VertexShape &quad) {
-        const VertexShape *oldValue = vertShapes + index;
+  const VertexShape* put(int index, const VertexShape& quad) {
+    const VertexShape* oldValue = vertShapes + index;
         std::copy(std::begin(quad), std::end(quad), std::begin(*(vertShapes + index)));
         return oldValue;
     }
 
-    VertexShape &get(int index) {
+  VertexShape& get(int index) {
         return vertShapes[index];
     }
 
-    IndexShape &getIndex(int index) {
+  IndexShape& getIndex(int index) {
         return indexShapes[index];
     }
 
-    VertexShape *cloneVertices() {
-        VertexShape *clonedVertices =
-                (VertexShape *) malloc(numVertShapes * sizeof(VertexShape));
+  VertexShape* cloneVertices() {
+    VertexShape* clonedVertices = (VertexShape*)malloc(numVertShapes * sizeof(VertexShape));
         memcpy(clonedVertices, vertShapes, numVertShapes * sizeof(VertexShape));
         return clonedVertices;
     }
 
-    VertexShape *vertShapes;
-    IndexShape *indexShapes;
+  VertexShape* vertShapes;
+  IndexShape* indexShapes;
     int numVertShapes = 0;
     int numVertices = 0;
     int numIndices = 0;
