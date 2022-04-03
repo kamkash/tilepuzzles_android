@@ -29,7 +29,7 @@ struct RollerRenderer : TRenderer<TQuadVertexBuffer, Tile> {
     virtual void onMouseMove(const float2 &dragPosition) {
         math::float3 clipCoord = normalizeViewCoord(dragPosition);
         Tile *newTile = mesh->hitTest(clipCoord);
-        if (newTile && !newTile->equals(dragTile)) {
+        if (newTile && dragTile && !newTile->equals(dragTile)) {
             Direction dir = dragTile->directionTo(newTile);
             if (dir != Direction::none) {
                 mesh->rollTiles(*dragTile, dir);
