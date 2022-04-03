@@ -1,0 +1,27 @@
+material {
+    name: BakedTexture,
+    shadingModel: lit,
+    culling: back,
+    blending: transparent,
+    transparency: twoPassesTwoSides,
+    parameters : [
+        { type: sampler2d, name : albedo },
+        { type: float, name: roughness },
+        { type: float, name: metallic },
+        { type: float, name: alpha }        
+    ],    
+    requires : [
+        uv0
+    ]
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_albedo, getUV0());
+        material.baseColor.rgb = material.baseColor.rgb * material.baseColor.a * materialParams.alpha;
+        material.baseColor.a = material.baseColor.a * materialParams.alpha;        
+        material.roughness = materialParams.roughness;
+        material.metallic = materialParams.metallic;
+    }
+}

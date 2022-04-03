@@ -1,0 +1,23 @@
+material {
+    name : BakedTexture,
+    parameters : [
+        { type : sampler2d, name : albedo },
+        { type: float, name: alpha }                
+    ],
+    requires : [
+        uv0
+    ],
+    shadingModel : unlit,
+    culling : none,
+    blending : transparent,
+    transparency : twoPassesTwoSides
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_albedo, getUV0());
+        material.baseColor.rgb = material.baseColor.rgb * material.baseColor.a * materialParams.alpha;
+        material.baseColor.a = material.baseColor.a * materialParams.alpha;        
+    }
+}

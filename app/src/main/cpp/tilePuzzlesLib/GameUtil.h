@@ -1,7 +1,6 @@
 #ifndef _GAME_UTIL_H_
 #define _GAME_UTIL_H_
 
-#include "Tile.h"
 #include <stdlib.h>
 #include <time.h>
 #include <vector>
@@ -31,11 +30,17 @@ struct GameUtil {
     int n = tiles.size();
     for (int i = n - 1; i >= 1; --i) {
       int j = trand(0, i);
-      Tile& tilei = tiles[i];
-      Tile& tilej = tiles[j];
+      T& tilei = tiles[i];
+      T& tilej = tiles[j];
       tilei.swap(tilej);
     }
   }
+
+  static constexpr float LOW_X = -1.F;
+  static constexpr float HIGH_X = 1.F;
+  static constexpr float LOW_Y = -1.F;
+  static constexpr float HIGH_Y = .7F;
+  static constexpr float TILE_SCALE_FACTOR = .6F;
 };
 
 } // namespace tilepuzzles

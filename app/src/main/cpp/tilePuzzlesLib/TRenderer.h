@@ -78,6 +78,10 @@ struct TRenderer : IRenderer {
     if (width > 0 && height > 0) {
       view->setViewport({0, 0, uint32_t(width), uint32_t(height)});
       const float aspect = getAspectRatio();
+
+      if (aspect < 1.) {
+        zoom /= aspect;
+      }
       camera->setProjection(Camera::Projection::ORTHO, -aspect * zoom, aspect * zoom, -zoom, zoom, kNearPlane,
                             kFarPlane);
     }
@@ -97,6 +101,8 @@ struct TRenderer : IRenderer {
     em.create(1, &cameraEntity);
     camera = engine->createCamera(cameraEntity);
     view = engine->createView();
+    view->setAmbientOcclusionOptions({.enabled = true});
+    view->setBloomOptions({.enabled = true});
     view->setCamera(camera);
     scene = engine->createScene();
     view->setScene(scene);
@@ -109,6 +115,10 @@ struct TRenderer : IRenderer {
       engine->destroy(swapChain);
       swapChain = nullptr;
     }
+  }
+
+  virtual Path getTileMaterialPath() {
+    return IOUtil::getMaterialPath(FILAMAT_FILE_UNLIT.data());
   }
 
   virtual void destroy() {
@@ -125,6 +135,7 @@ struct TRenderer : IRenderer {
       engine->destroy(borderTex);
       engine->destroy(borderVb);
       engine->destroy(borderIb);
+      engine->destroy(borderMaterial);
     }
 
     engine->destroy(skybox);
@@ -134,6 +145,7 @@ struct TRenderer : IRenderer {
     engine->destroy(vb);
     engine->destroy(ib);
     engine->destroy(light);
+    engine->destroy(pointLight);
 
     view->setScene(nullptr);
     engine->destroy(tex);
@@ -147,7 +159,13 @@ struct TRenderer : IRenderer {
   }
 
   float getAspectRatio() {
-    return float(view->getViewport().width) / float(view->getViewport().height);
+    float aspectRation = 1.F;
+    uint32_t width = view->getViewport().width;
+    uint32_t height = view->getViewport().height;
+    if (width && height) {
+      aspectRation = float(width) / float(height);
+    }
+    return aspectRation;
   }
 
   virtual SwapChain* createSwapChain(void* nativeSwapChain) {
@@ -170,7 +188,6 @@ struct TRenderer : IRenderer {
         .boundingBox({{-1, -1, -1}, {1, 1, 1}})
         .material(0, matInstance)
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, mesh->vertexBuffer->numIndices)
-        .culling(false)
         .receiveShadows(false)
         .castShadows(false)
         .build(*engine, renderable);
@@ -217,7 +234,7 @@ struct TRenderer : IRenderer {
     bgIb = IndexBuffer::Builder().indexCount(6).bufferType(IndexBuffer::IndexType::USHORT).build(*engine);
     bgIb->setBuffer(*engine, IndexBuffer::BufferDescriptor(QUAD_INDICES, sizeof(uint16_t) * 6, nullptr));
 
-    Path matPath = IOUtil::getMaterialPath("bakedTextureOpaque.filamat");
+    Path matPath = IOUtil::getMaterialPath(FILAMAT_FILE_OPAQUE.data());
     std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
     bgMaterial = Material::Builder().package(mat.data(), mat.size()).build(*engine);
 
@@ -228,7 +245,6 @@ struct TRenderer : IRenderer {
       .boundingBox({{-1, -1, -1}, {1, 1, 1}})
       .material(0, bgMatInstance)
       .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, bgVb, bgIb, 0, 6)
-      .culling(false)
       .receiveShadows(false)
       .castShadows(false)
       .build(*engine, bgRenderable);
@@ -270,14 +286,19 @@ struct TRenderer : IRenderer {
       borderIb->setBuffer(
         *engine, IndexBuffer::BufferDescriptor(vbBorder->indexShapes, vbBorder->getIndexSize(), nullptr));
 
-      borderMatInstance = material->createInstance();
+      Path matPath = IOUtil::getMaterialPath(FILAMAT_FILE_UNLIT.data());
+      std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
+      borderMaterial = Material::Builder().package(mat.data(), mat.size()).build(*engine);
+
+      borderMatInstance = borderMaterial->createInstance();
+      borderMatInstance->setParameter("alpha", 1.f);
+
       borderMatInstance->setParameter("albedo", borderTex, sampler);
       borderRenderable = EntityManager::get().create();
       RenderableManager::Builder(1)
         .boundingBox({{-1, -1, -1}, {1, 1, 1}})
         .material(0, borderMatInstance)
         .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, borderVb, borderIb, 0, vbBorder->numIndices)
-        .culling(false)
         .receiveShadows(false)
         .castShadows(false)
         .build(*engine, borderRenderable);
@@ -289,6 +310,7 @@ struct TRenderer : IRenderer {
     drawBackground();
     drawTiles();
     drawBorder();
+    // addLight();
   }
 
   virtual Path getTilesTexturePath() {
@@ -325,7 +347,7 @@ struct TRenderer : IRenderer {
     TextureSampler sampler(MinFilter::LINEAR, MagFilter::LINEAR);
 
     // Set up view
-    skybox = Skybox::Builder().showSun(true).color({0., 0., 0., 0.}).build(*engine);
+    skybox = Skybox::Builder().showSun(true).color({0., 1., 0., 1.0f}).build(*engine);
     scene->setSkybox(skybox);
     view->setCamera(camera);
     view->setPostProcessingEnabled(false);
@@ -347,49 +369,67 @@ struct TRenderer : IRenderer {
     ib->setBuffer(*engine, IndexBuffer::BufferDescriptor(mesh->vertexBuffer->indexShapes,
                                                          mesh->vertexBuffer->getIndexSize(), nullptr));
 
-    Path matPath = IOUtil::getMaterialPath("bakedTextureOpaque.filamat");
+    Path matPath = getTileMaterialPath();
     std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
     material = Material::Builder().package(mat.data(), mat.size()).build(*engine);
     matInstance = material->createInstance();
     matInstance->setParameter("albedo", tex, sampler);
-
-    //        matInstance->setParameter("roughness", 1.f);
-    //        matInstance->setParameter("metallic", 1.f);
-    //        matInstance->setParameter("alpha", 1.f);
+    matInstance->setParameter("alpha", 1.f);
 
     renderable = EntityManager::get().create();
     RenderableManager::Builder(1)
       .boundingBox({{-1, -1, -1}, {1, 1, 1}})
       .material(0, matInstance)
       .geometry(0, RenderableManager::PrimitiveType::TRIANGLES, vb, ib, 0, mesh->vertexBuffer->numIndices)
-      .culling(false)
+      .receiveShadows(false)
+      .castShadows(false)
       .build(*engine, renderable);
 
     scene->addEntity(renderable);
     const float aspect = getAspectRatio();
     camera->setProjection(Camera::Projection::ORTHO, -aspect * zoom, aspect * zoom, -zoom, zoom, kNearPlane,
                           kFarPlane);
+  }
 
+  virtual void addLight() {
     // Add light sources into the scene.
     utils::EntityManager& em = utils::EntityManager::get();
     light = em.create();
     LightManager::Builder(LightManager::Type::SUN)
-      .color({.7, .3, .9})
-      .intensity(200000)
-      .direction({0., 0., -0.6})
-      .sunAngularRadius(.5f)
-      .castShadows(true)
-      .castLight(true)
+      .color(Color::toLinear<ACCURATE>(sRGBColor(0.98f, 0.92f, 0.89f)))
+      .intensity(300000)
+      .direction({1., 1., 1.})
+      .sunAngularRadius(20.f)
+      .sunHaloSize(20.f)
+      .castShadows(false)
+      .castLight(false)
       .build(*engine, light);
     scene->addEntity(light);
+
+    pointLight = em.create();
+    LightManager::Builder(LightManager::Type::DIRECTIONAL)
+      .color(Color::toLinear<ACCURATE>(sRGBColor(0.98f, 0.92f, 0.89f)))
+      .intensity(300000)
+      .direction({-1., -1., -1.})
+      .sunAngularRadius(20.f)
+      .sunHaloSize(20.f)
+      .castShadows(false)
+      .castLight(false)
+      .build(*engine, pointLight);
+    scene->addEntity(pointLight);
+  }
+
+  virtual void updatePointLight(math::float3 pos) {
+    LightManager& lcm = engine->getLightManager();
+    const LightManager::Instance& mi = lcm.getInstance(pointLight);
+    lcm.setPosition(mi, pos);
+    lcm.setDirection(mi, pos);
   }
 
   virtual void animate(double now) {
     auto& tcm = engine->getTransformManager();
     tcm.setTransform(tcm.getInstance(renderable),
-                     filament::math::mat4f::rotation(now, filament::math::float3{1, 0, 0}));
-    tcm.setTransform(tcm.getInstance(borderRenderable),
-                     filament::math::mat4f::rotation(now, filament::math::float3{1, 0, 0}));
+                     filament::math::mat4f::rotation(now, filament::math::float3{0, 0, 1}));
   }
 
   virtual void shuffle() {
@@ -416,9 +456,6 @@ struct TRenderer : IRenderer {
 #ifdef USE_SDL
   Logger L;
 #endif
-  Texture* tex;
-  VertexBuffer* vb;
-  IndexBuffer* ib;
 
   Skybox* skybox;
   Entity renderable;
@@ -427,16 +464,23 @@ struct TRenderer : IRenderer {
   SwapChain* swapChain = nullptr;
   Entity cameraEntity;
   Entity light;
+  Entity pointLight;
   Camera* camera = nullptr;
   View* view = nullptr;
   Scene* scene = nullptr;
+
+  Texture* tex;
+  VertexBuffer* vb;
+  IndexBuffer* ib;
   Material* material = nullptr;
-  Material* anchMaterial = nullptr;
   MaterialInstance* matInstance = nullptr;
+
+  Material* anchMaterial = nullptr;
 
   VertexBuffer* borderVb;
   IndexBuffer* borderIb;
   Entity borderRenderable;
+  Material* borderMaterial = nullptr;
   MaterialInstance* borderMatInstance = nullptr;
   Texture* borderTex;
 
@@ -454,7 +498,11 @@ struct TRenderer : IRenderer {
 
   static constexpr double kNearPlane = -1.;
   static constexpr double kFarPlane = 1.;
-  static constexpr float zoom = 2.0f;
+  float zoom = 1.0f;
+
+  static constexpr std::string_view FILAMAT_FILE_UNLIT = "bakedTextureUnlitTransparent.filamat";
+  static constexpr std::string_view FILAMAT_FILE_OPAQUE = "bakedTextureOpaque.filamat";
+  static constexpr std::string_view FILAMAT_FILE_LIT = "bakedTextureLitTransparent.filamat";
 };
 
 } // namespace tilepuzzles

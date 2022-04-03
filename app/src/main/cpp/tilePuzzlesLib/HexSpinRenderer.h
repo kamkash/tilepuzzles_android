@@ -28,6 +28,10 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     mesh = std::shared_ptr<Mesh<TriangleVertexBuffer, HexTile>>(new HexSpinMesh());
   }
 
+  virtual Path getTileMaterialPath() {
+    return IOUtil::getMaterialPath(FILAMAT_FILE_OPAQUE.data());
+  }
+
   virtual void initMesh() {
     mesh->init(CFG);
   }
@@ -87,7 +91,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
       math::float3 posVec = GeoUtil::translate(clipCoord, -1. * math::float3(anchorPoint.x, anchorPoint.y, 0.));
       math::float3 pNormal = GeoUtil::tcross(anchVec, posVec);
       lastNormalVec = pNormal;
-      mesh->setTileGroupZCoord(dragAnchor, .1);
+      mesh->setTileGroupZCoord(dragAnchor, .3);
     }
     return dragTile;
   }
@@ -198,15 +202,12 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
                       IndexBuffer::BufferDescriptor(mesh->vertexBufferAnchors->indexShapes,
                                                     mesh->vertexBufferAnchors->getIndexSize(), nullptr));
 
-    Path matPath = IOUtil::getMaterialPath("bakedTextureLit.filamat");
+    Path matPath = IOUtil::getMaterialPath(FILAMAT_FILE_UNLIT.data());
     std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
     anchMaterial = Material::Builder().package(mat.data(), mat.size()).build(*engine);
-
     anchMatInstance = anchMaterial->createInstance();
     anchMatInstance->setParameter("albedo", anchTex, sampler);
-    anchMatInstance->setParameter("roughness", 1.f);
-    anchMatInstance->setParameter("metallic", 1.f);
-    anchMatInstance->setParameter("alpha", .7f);
+    anchMatInstance->setParameter("alpha", 1.f);
 
     anchRenderable = EntityManager::get().create();
     RenderableManager::Builder(1)
@@ -224,7 +225,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     LightManager::Builder(LightManager::Type::SUN)
       .color({.7, .3, .9})
       .intensity(200000)
-      .direction({0., 0., -0.6})
+      .direction({0., 0., 0.6})
       .sunAngularRadius(.5f)
       .castShadows(true)
       .castLight(true)
@@ -252,7 +253,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
   std::tuple<math::float2, std::vector<HexTile>> dragAnchor;
   float rotationAngle = 0.;
-  static constexpr float ROTATION_ANGLE = math::F_PI / 60.;
+  static constexpr float ROTATION_ANGLE = math::F_PI / 30.;
   static constexpr float PI_3 = math::F_PI / 3.;
   constexpr static float EPS = 0.1F;
   static constexpr const char* CFG = R"({
