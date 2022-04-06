@@ -104,6 +104,19 @@ struct Mesh {
         }
     }
 
+  virtual std::tuple<math::float2, std::vector<T>>* hitTestAnchor(const math::float3& clipCoord) {
+    auto iter =
+      std::find_if(tileGroupAnchors.begin(), tileGroupAnchors.end(), [&clipCoord](const auto& anch) {
+        math::float2 point = std::get<0>(anch);
+        return abs(point.x - clipCoord.x) <= GeoUtil::EPS_3 && abs(point.y - clipCoord.y) <= GeoUtil::EPS_3;
+      });
+    if (iter != tileGroupAnchors.end()) {
+      return &*iter;
+    } else {
+      return nullptr;
+    }
+  }
+
   math::float4 normalizeViewCoord(const App& app, const math::float2& viewCoord) const {
         math::mat4 projMat = app.camera->getProjectionMatrix();
         math::mat4 invProjMat = app.camera->inverseProjection(projMat);
@@ -135,7 +148,7 @@ struct Mesh {
         topLeft.x = GameUtil::LOW_X + c * size.x;
                 const std::string tileId = string("tile") + to_string(r) + to_string(c);
         T tile(tileId, topLeft, size, &vertexBuffer->get(t), &vertexBuffer->getIndex(t), t, texWidth,
-               indexOffset, {r, c}, t + 1, 0.1F);
+               indexOffset, {r, c}, t + 1, GameUtil::TILE_DEPTH);
                 tiles.push_back(tile);
                 ++t;
                 indexOffset += 4;
@@ -172,28 +185,28 @@ struct Mesh {
       topLeft.x = GameUtil::LOW_X + borderLeft * size.x;
       topLeft.y = GameUtil::HIGH_Y - borderTop * size.y;
       T topTile("borderTop", topLeft, horzSize, &vertexBufferBorder->get(0), &vertexBufferBorder->getIndex(0),
-                0, texWidth, 0, {0, 0}, 1, .2);
+                0, texWidth, 0, {0, 0}, 1, GameUtil::BORDER_DEPTH);
             borderTiles.push_back(topTile);
 
             // bottom
       topLeft.x = GameUtil::LOW_X + borderLeft * size.x;
       topLeft.y = GameUtil::HIGH_Y - (borderTop * size.y) - (borderHeight * size.y);
             T bottomTile("borderBottom", topLeft, horzSize, &vertexBufferBorder->get(1),
-                   &vertexBufferBorder->getIndex(1), 0, texWidth, 4, {0, 0}, 2, .2);
+                   &vertexBufferBorder->getIndex(1), 0, texWidth, 4, {0, 0}, 2, GameUtil::BORDER_DEPTH);
             borderTiles.push_back(bottomTile);
 
             // left
       topLeft.x = GameUtil::LOW_X + borderLeft * size.x;
       topLeft.y = GameUtil::HIGH_Y - borderTop * size.y;
             T leftTile("borderLeft", topLeft, vertSize, &vertexBufferBorder->get(2),
-                 &vertexBufferBorder->getIndex(2), 1, texWidth, 8, {0, 0}, 3, .2);
+                 &vertexBufferBorder->getIndex(2), 1, texWidth, 8, {0, 0}, 3, GameUtil::BORDER_DEPTH);
             borderTiles.push_back(leftTile);
 
             // right
       topLeft.x = GameUtil::LOW_X + (borderLeft * size.x) + (borderWidth * size.x);
       topLeft.y = GameUtil::HIGH_Y - borderTop * size.y;
             T rightTile("borderRight", topLeft, vertSize, &vertexBufferBorder->get(3),
-                  &vertexBufferBorder->getIndex(3), 1, texWidth, 12, {0, 0}, 4, .2);
+                  &vertexBufferBorder->getIndex(3), 1, texWidth, 12, {0, 0}, 4, GameUtil::BORDER_DEPTH);
             borderTiles.push_back(rightTile);
         }
     }

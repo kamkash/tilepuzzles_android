@@ -197,10 +197,10 @@ struct TRenderer : IRenderer {
 
   virtual void drawBackground() {
     static const Vertex QUAD_VERTICES[4] = {
-      {{-1, -1, 0}, {0, 0, 0}, {0, 0}},
-      {{1, -1, 0}, {0, 0, 0}, {1, 0}},
-      {{-1, 1, 0}, {0, 0, 0}, {0, 1}},
-      {{1, 1, 0}, {0, 0, 0}, {1, 1}},
+      {{-1, -1, GameUtil::BACKGROUND_DEPTH}, {0, 0, 0}, {0, 0}},
+      {{1, -1, GameUtil::BACKGROUND_DEPTH}, {0, 0, 0}, {1, 0}},
+      {{-1, 1, GameUtil::BACKGROUND_DEPTH}, {0, 0, 0}, {0, 1}},
+      {{1, 1, GameUtil::BACKGROUND_DEPTH}, {0, 0, 0}, {1, 1}},
     };
 
     static constexpr uint16_t QUAD_INDICES[6] = {
@@ -347,7 +347,8 @@ struct TRenderer : IRenderer {
     TextureSampler sampler(MinFilter::LINEAR, MagFilter::LINEAR);
 
     // Set up view
-    skybox = Skybox::Builder().showSun(true).color({0., 1., 0., 1.0f}).build(*engine);
+    skybox =
+      Skybox::Builder().showSun(true).color({165. / 255., 42. / 255., 42. / 255., 1.f}).build(*engine);
     scene->setSkybox(skybox);
     view->setCamera(camera);
     view->setPostProcessingEnabled(false);

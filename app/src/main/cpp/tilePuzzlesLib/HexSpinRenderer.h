@@ -83,6 +83,13 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
   virtual HexTile* onMouseDown(const math::float2& pos) {
     math::float3 clipCoord = normalizeViewCoord(pos);
+
+    auto anch = mesh->hitTestAnchor(clipCoord);
+    if (anch) {
+      auto anchorPoint = std::get<0>(dragAnchor);
+//      L.info("anchor hit", anchorPoint.x, anchorPoint.y)      ;
+    }
+
     dragTile = mesh->hitTest(clipCoord);
     if (dragTile) {
       dragAnchor = mesh->nearestAnchorGroup({clipCoord.x, clipCoord.y});
@@ -91,7 +98,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
       math::float3 posVec = GeoUtil::translate(clipCoord, -1. * math::float3(anchorPoint.x, anchorPoint.y, 0.));
       math::float3 pNormal = GeoUtil::tcross(anchVec, posVec);
       lastNormalVec = pNormal;
-      mesh->setTileGroupZCoord(dragAnchor, .3);
+      mesh->setTileGroupZCoord(dragAnchor, GameUtil::RAISED_TILE_DEPTH);
     }
     return dragTile;
   }
@@ -101,7 +108,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     if (angle != 0.) {
       mesh->rotateTileGroup(dragAnchor, angle);
       snapToPosition();
-      mesh->setTileGroupZCoord(dragAnchor, 0.);
+      mesh->setTileGroupZCoord(dragAnchor, GameUtil::TILE_DEPTH);
       needsDraw = true;
     }
     rotationAngle = 0.f;
@@ -253,7 +260,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
   std::tuple<math::float2, std::vector<HexTile>> dragAnchor;
   float rotationAngle = 0.;
-  static constexpr float ROTATION_ANGLE = math::F_PI / 30.;
+  static constexpr float ROTATION_ANGLE = math::F_PI / 35.;
   static constexpr float PI_3 = math::F_PI / 3.;
   constexpr static float EPS = 0.1F;
   static constexpr const char* CFG = R"({

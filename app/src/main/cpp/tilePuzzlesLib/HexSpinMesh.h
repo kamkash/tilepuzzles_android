@@ -66,7 +66,7 @@ struct HexSpinMesh : Mesh<TriangleVertexBuffer, HexTile> {
         topLeft.y = GameUtil::HIGH_Y - r * h;
         const std::string tileId = string("tile") + to_string(r) + to_string(c);
         HexTile tile(tileId, topLeft, size, &vertexBuffer->get(t), &vertexBuffer->getIndex(t),
-                     (rowGroup * columns) + colGroup, texWidth, indexOffset, {r, c}, t + 1, 0.);
+                     (rowGroup * columns) + colGroup, texWidth, indexOffset, {r, c}, t + 1, GameUtil::TILE_DEPTH);
         tile.groupKey = key;
         addTile(tile);
         addTileGroup(tile);
@@ -115,7 +115,7 @@ struct HexSpinMesh : Mesh<TriangleVertexBuffer, HexTile> {
                     const std::string tileId = string("anch") + to_string(anchIndex);
                     Tile tile(tileId, topLeft, anchSize, &vertexBufferAnchors->get(anchIndex),
                               &vertexBufferAnchors->getIndex(anchIndex), 0, texWidth, indexOffset,
-                              {anchIndex, 0}, anchIndex + 1, 0.1);
+                              {anchIndex, 0}, anchIndex + 1, GameUtil::ANCHOR_DEPTH);
                     anchorTiles.push_back(tile);
                     tile.setVertexZCoord(.1);
                     ++anchIndex;

@@ -5,6 +5,9 @@
 #include <time.h>
 #include <vector>
 
+#include <math/mathfwd.h>
+using namespace filament;
+
 namespace tilepuzzles {
 
 struct GameUtil {
@@ -40,7 +43,12 @@ struct GameUtil {
   static constexpr float HIGH_X = 1.F;
   static constexpr float LOW_Y = -1.F;
   static constexpr float HIGH_Y = .7F;
-  static constexpr float TILE_SCALE_FACTOR = .6F;
+  static constexpr float TILE_SCALE_FACTOR = .8F;
+  static constexpr float BACKGROUND_DEPTH = 0.F;
+  static constexpr float TILE_DEPTH = 0.F;
+  static constexpr float ANCHOR_DEPTH = 0.4F;
+  static constexpr float BORDER_DEPTH = 0.2F;
+  static constexpr float RAISED_TILE_DEPTH = 0.3F;
 };
 
 } // namespace tilepuzzles
