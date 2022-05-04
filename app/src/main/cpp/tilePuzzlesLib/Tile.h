@@ -48,22 +48,48 @@ struct Tile {
 #endif
     }
 
-  void swap(Tile& other) {
-        Point otherTopleft = other.topLeft;
-        math::int2 otherGridCoord = other.gridCoord;
-        other.topLeft = {topLeft.x, topLeft.y};
+  virtual void swap(Tile* other) {
+    Point otherTopleft = other->topLeft;
+    other->topLeft = {topLeft.x, topLeft.y};
         topLeft = {otherTopleft.x, otherTopleft.y};
-        other.updateVertices();
+    other->updateVertices();
         updateVertices();
 
-        other.gridCoord = {gridCoord.x, gridCoord.y};
+    math::int2 otherGridCoord = other->gridCoord;
+    other->gridCoord = {gridCoord.x, gridCoord.y};
         gridCoord = {otherGridCoord.x, otherGridCoord.y};
+  }
+
+  virtual void assign(Tile* other) {
+    topLeft = other->topLeft;
+    gridCoord = other->gridCoord;
+
+    (*quadVertices)[0].position = (*other->quadVertices)[0].position;
+    (*quadVertices)[1].position = (*other->quadVertices)[1].position;
+    (*quadVertices)[2].position = (*other->quadVertices)[2].position;
+    (*quadVertices)[3].position = (*other->quadVertices)[3].position;
+
+    (*iniQuadVertices)[0].position = (*other->iniQuadVertices)[0].position;
+    (*iniQuadVertices)[1].position = (*other->iniQuadVertices)[1].position;
+    (*iniQuadVertices)[2].position = (*other->iniQuadVertices)[2].position;
+    (*iniQuadVertices)[3].position = (*other->iniQuadVertices)[3].position;
+  }
+
+  virtual bool hasVertex(const math::float2& vert) {
+    return (abs(getVert(0).x - vert.x) <= EPS && abs(getVert(0).y - vert.y) <= EPS) ||
+           (abs(getVert(1).x - vert.x) <= EPS && abs(getVert(1).y - vert.y) <= EPS) ||
+           (abs(getVert(2).x - vert.x) <= EPS && abs(getVert(2).y - vert.y) <= EPS);
+  }
+
+  virtual math::float3 getVert(int index) {
+    return (*quadVertices)[index].position;
+  }  
+
+  virtual void translate(Direction dir, int rows, int columns) {
     }
 
     virtual void rotateAtAnchor(math::float2 anch, float angle) {
     }
-
-
 
   virtual bool onClick(const math::float2& coord) const {
     return (*quadVertices)[0].position.x <= coord.x && (*quadVertices)[1].position.x >= coord.x &&
@@ -92,9 +118,7 @@ struct Tile {
     }
 
     virtual void setVertexZCoord(float zCoord) {
-        (*quadVertices)[0].position.z = zCoord;
-        (*quadVertices)[1].position.z = zCoord;
-        (*quadVertices)[2].position.z = zCoord;
+    (*quadVertices)[0].position.z = (*quadVertices)[1].position.z = (*quadVertices)[2].position.z =
         (*quadVertices)[3].position.z = zCoord;
     }
 
@@ -151,16 +175,15 @@ struct Tile {
 
   QuadVertices* quadVertices = nullptr;
   QuadIndices* quadIndicies = nullptr;
-
     QuadVertices* iniQuadVertices = nullptr;
-
     Point topLeft;
     Size size;
     std::string tileId;
     int tileNum;
     bool isBlank = false;
-    math::int2 gridCoord;
+  math::int2 gridCoord = {0, 0};
   float depth = 0.F;
+  constexpr static float EPS = 0.001F;
 #ifdef USE_SDL
   constexpr static Logger L = Logger::getLogger();
 #endif

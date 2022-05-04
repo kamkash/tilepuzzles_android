@@ -2,9 +2,11 @@
 #define _SLIDER_RENDERER_H_
 
 #include "App.h"
+
 #ifdef USE_SDL
 #include "GLogger.h"
 #endif
+
 #include "SliderMesh.h"
 #include "TRenderer.h"
 #include "Tile.h"
@@ -20,47 +22,47 @@ namespace tilepuzzles {
 
 struct SliderRenderer : TRenderer<TQuadVertexBuffer, Tile> {
 
-  SliderRenderer() {
-    mesh = std::shared_ptr<Mesh<TQuadVertexBuffer, Tile>>(new SliderMesh());
-  }
-
-  virtual void onMouseMove(const float2& dragPosition) {
-  }
-
-  virtual Tile* onMouseUp(const float2& pos) {
-    math::float3 clipCoord = normalizeViewCoord(pos);
-    Tile* tile = mesh->hitTest(clipCoord);
-    return tile;
-  }
-
-  virtual Tile* onMouseDown(const float2& pos) {
-    math::float3 clipCoord = normalizeViewCoord(pos);
-    Tile* tile = mesh->hitTest(clipCoord);
-    if (tile) {
-      mesh->slideTiles(*tile);
-      needsDraw = true;
+    SliderRenderer() {
+        mesh = std::shared_ptr<Mesh<TQuadVertexBuffer, Tile>>(new SliderMesh());
     }
-    return tile;
-  }
 
-  virtual Tile* onRightMouseDown(const float2& viewCoord) {
-    math::float3 clipCoord = normalizeViewCoord(viewCoord);
-    Tile* tile = mesh->hitTest(clipCoord);
-    return tile;
-  }
+    virtual void onMouseMove(const float2 &dragPosition) {
+    }
 
-  virtual void initMesh() {
-    mesh->init(CFG);
-  }
+    virtual Tile *onMouseUp(const float2 &pos) {
+        math::float3 clipCoord = normalizeViewCoord(pos);
+        Tile *tile = mesh->hitTest(clipCoord);
+        return tile;
+    }
 
-  static constexpr const char* CFG = R"({
+    virtual Tile *onMouseDown(const float2 &pos) {
+        math::float3 clipCoord = normalizeViewCoord(pos);
+        Tile *tile = mesh->hitTest(clipCoord);
+        if (tile) {
+            mesh->slideTiles(*tile);
+            needsDraw = true;
+        }
+        return tile;
+    }
+
+    virtual Tile *onRightMouseDown(const float2 &viewCoord) {
+        math::float3 clipCoord = normalizeViewCoord(viewCoord);
+        Tile *tile = mesh->hitTest(clipCoord);
+        return tile;
+    }
+
+    virtual void initMesh() {
+        mesh->init(CFG);
+    }
+
+    static constexpr const char *CFG = R"({
     "type":"slider",
       "dimension": {
         "count": 24
       }    ,
     "border": {
       "top":1,
-      "left":1,
+      "left":0,
       "width": 4,
       "height": 4
     }      

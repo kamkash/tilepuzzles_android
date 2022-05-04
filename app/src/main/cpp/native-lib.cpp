@@ -55,3 +55,9 @@ Java_net_kamkash_tilepuzzles_MainActivity_touchAction(JNIEnv *env, jobject thiz,
                                                       jfloat raw_x, jfloat raw_y) {
     touchAction(action, raw_x, raw_y);
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_net_kamkash_tilepuzzles_MainActivity_shuffle(JNIEnv *env, jobject thiz) {
+    shuffle();
+}

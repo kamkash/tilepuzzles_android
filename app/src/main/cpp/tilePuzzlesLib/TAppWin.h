@@ -57,10 +57,10 @@ using utils::Path;
 
 namespace tilepuzzles {
 
-static constexpr int WINDOW_WIDTH = 640;
-static constexpr int WINDOW_HEIGHT = 480;
-static constexpr int WINDOW_X_POS = 500;
-static constexpr int WINDOW_Y_POS = 500;
+static constexpr int WINDOW_WIDTH = 320;
+static constexpr int WINDOW_HEIGHT = 320;
+static constexpr int WINDOW_X_POS = 300;
+static constexpr int WINDOW_Y_POS = 300;
 static constexpr int ACTION_DOWN = 0;
 static constexpr int ACTION_UP = 1;
 static constexpr int ACTION_MOVE = 2;
@@ -134,9 +134,9 @@ struct TAppWin {
   }
 
   void createRenderer() {
-    // renderer = std::shared_ptr<IRenderer>(new SliderRenderer());
+     renderer = std::shared_ptr<IRenderer>(new SliderRenderer());
     // renderer = std::shared_ptr<IRenderer>(new RollerRenderer());
-    renderer = std::shared_ptr<IRenderer>(new HexSpinRenderer());
+    // renderer = std::shared_ptr<IRenderer>(new HexSpinRenderer());
   }
 
   /**
@@ -148,7 +148,7 @@ struct TAppWin {
   static void animation_new_frame(TAppWin& win, double dt) {
     if (win.renderer->getSwapChain()) {
       win.renderer->update(dt);
-      // win.renderer->animate(dt);
+      win.renderer->animate(dt);
       win.needsDraw = true;
     }
   }

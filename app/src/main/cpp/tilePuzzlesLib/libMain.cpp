@@ -67,3 +67,6 @@ void resizeWindow(int width, int height) {
     app.resize_window(width, height);
 }
 
+void shuffle() {
+    app.renderer->shuffle();
+}

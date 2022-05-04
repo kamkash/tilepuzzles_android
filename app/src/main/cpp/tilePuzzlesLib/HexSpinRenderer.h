@@ -17,6 +17,12 @@
 #include <iostream>
 #include <vector>
 
+#include <math/mat3.h>
+#include <math/mat4.h>
+#include <math/mathfwd.h>
+#include <math/vec2.h>
+#include <math/vec3.h>
+
 using namespace filament;
 using namespace filament::math;
 
@@ -38,16 +44,15 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
   virtual HexTile* onRightMouseDown(const float2& viewCoord) {
     mesh->shuffle();
+    mesh->processAnchorGroups();
     math::float3 clipCoord = normalizeViewCoord(viewCoord);
     HexTile* tile = mesh->hitTest(clipCoord);
     needsDraw = true;
     return tile;
   }
 
-  virtual void onMouseMove(const float2& dragPosition) {
-    if (dragTile) {
-      math::float3 clipCoord = normalizeViewCoord(dragPosition);
-      float2 anchor = std::get<0>(dragAnchor);
+  void handleTileDrag(math::float3 clipCoord) {
+    float2 anchor = dragAnchor.anchorPoint;
       math::float3 anchVec = {dragTile->size.x, 0., 0.};
       math::float3 posVec = GeoUtil::translate(clipCoord, -1. * math::float3(anchor.x, anchor.y, 0.));
       math::float3 pNormal = GeoUtil::tcross(anchVec, posVec);
@@ -78,24 +83,49 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
         needsDraw = true;
       }
       lastNormalVec = pNormal;
+  }
+
+  void handleAnchorDrag(math::float3 clipCoord) {
+    bool canDrag = dragAnchor.dragable;
+    if (canDrag) {
+      float dx = abs(clipCoord.x - dragPoint.x);
+      float dy = abs(clipCoord.y - dragPoint.y);
+      float dist = distance(clipCoord, math::float3(dragPoint.x, dragPoint.y, 0.F));
+      if (dist > dragTile->size.x) {
+        Direction dir = dx > dy ? (clipCoord.x - dragPoint.x > 0) ? Direction::right : Direction::left
+                                : (clipCoord.y - dragPoint.y > 0) ? Direction::up : Direction::down;
+        mesh->rollTileGroups(dragAnchor, dir);
+        dragPoint = math::float2(clipCoord.x, clipCoord.y);
+        needsDraw = true;
+      }
+    }
+  }
+
+  virtual void onMouseMove(const float2& dragPosition) {
+    math::float3 clipCoord = normalizeViewCoord(dragPosition);
+    if (dragTile) {
+      if (dragAction == DragAction::TileDrag) {
+        handleTileDrag(clipCoord);
+      } else if (dragAction == DragAction::AnchorDrag) {
+        handleAnchorDrag(clipCoord);
+      }
     }
   }
 
   virtual HexTile* onMouseDown(const math::float2& pos) {
     math::float3 clipCoord = normalizeViewCoord(pos);
-
+    dragTile = mesh->hitTest(clipCoord);
     auto anch = mesh->hitTestAnchor(clipCoord);
     if (anch) {
-      auto anchorPoint = std::get<0>(dragAnchor);
-//      L.info("anchor hit", anchorPoint.x, anchorPoint.y)      ;
-    }
-
-    dragTile = mesh->hitTest(clipCoord);
-    if (dragTile) {
+      dragAnchor = *anch;
+      dragAction = DragAction::AnchorDrag;
+      dragPoint = dragAnchor.anchorPoint;
+    } else if (dragTile) {
+      dragAction = DragAction::TileDrag;
       dragAnchor = mesh->nearestAnchorGroup({clipCoord.x, clipCoord.y});
-      auto anchorPoint = std::get<0>(dragAnchor);
+      dragPoint = dragAnchor.anchorPoint;
       math::float3 anchVec = {dragTile->size.x, 0., 0.};
-      math::float3 posVec = GeoUtil::translate(clipCoord, -1. * math::float3(anchorPoint.x, anchorPoint.y, 0.));
+      math::float3 posVec = GeoUtil::translate(clipCoord, -1. * math::float3(dragPoint.x, dragPoint.y, 0.));
       math::float3 pNormal = GeoUtil::tcross(anchVec, posVec);
       lastNormalVec = pNormal;
       mesh->setTileGroupZCoord(dragAnchor, GameUtil::RAISED_TILE_DEPTH);
@@ -104,17 +134,21 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
   }
 
   virtual HexTile* onMouseUp(const math::float2& pos) {
+    math::float3 clipCoord = normalizeViewCoord(pos);
+    if (dragTile) {
     float angle = snapToAngle();
     if (angle != 0.) {
       mesh->rotateTileGroup(dragAnchor, angle);
       snapToPosition();
-      mesh->setTileGroupZCoord(dragAnchor, GameUtil::TILE_DEPTH);
       needsDraw = true;
     }
     rotationAngle = 0.f;
     dragTile = nullptr;
-    mesh->collectAnchors();
-    math::float3 clipCoord = normalizeViewCoord(pos);
+      dragAction = DragAction::noDrag;
+      mesh->setTileGroupZCoord(dragAnchor, GameUtil::TILE_DEPTH);
+      mesh->processAnchorGroups();
+    }
+
     HexTile* tile = mesh->hitTest(clipCoord);
     return tile;
   }
@@ -209,7 +243,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
                       IndexBuffer::BufferDescriptor(mesh->vertexBufferAnchors->indexShapes,
                                                     mesh->vertexBufferAnchors->getIndexSize(), nullptr));
 
-    Path matPath = IOUtil::getMaterialPath(FILAMAT_FILE_UNLIT.data());
+    Path matPath = getAnchorMaterialPath();
     std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
     anchMaterial = Material::Builder().package(mat.data(), mat.size()).build(*engine);
     anchMatInstance = anchMaterial->createInstance();
@@ -237,7 +271,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
       .castShadows(true)
       .castLight(true)
       .build(*engine, anchLight);
-    scene->addEntity(anchLight);
+    // scene->addEntity(anchLight);
   }
 
   virtual void destroy() {
@@ -251,6 +285,13 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     TRenderer::destroy();
   }
 
+  void logGroupDepth(const std::string& msg) {
+    std::for_each(dragAnchor.tileGroup.begin(), dragAnchor.tileGroup.end(), [this](HexTile& t) {
+//      L.info((*t.triangleVertices)[0].position.z, (*t.triangleVertices)[1].position.z,
+//             (*t.triangleVertices)[2].position.z);
+    });
+  }
+
   VertexBuffer* anchVb;
   IndexBuffer* anchIb;
   Entity anchRenderable;
@@ -258,15 +299,18 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
   MaterialInstance* anchMatInstance = nullptr;
   Texture* anchTex;
 
-  std::tuple<math::float2, std::vector<HexTile>> dragAnchor;
+  TileGroup<HexTile> dragAnchor;
+  math::float2 dragPoint;
+  DragAction dragAction = DragAction::noDrag;
   float rotationAngle = 0.;
+
   static constexpr float ROTATION_ANGLE = math::F_PI / 35.;
   static constexpr float PI_3 = math::F_PI / 3.;
   constexpr static float EPS = 0.1F;
   static constexpr const char* CFG = R"({
     "type":"HexSpinner",
       "dimension": {
-        "rows": 3,
+        "rows": 2,
         "columns": 3
       }
   })";

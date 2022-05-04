@@ -67,8 +67,8 @@ struct RollerRenderer : TRenderer<TQuadVertexBuffer, Tile> {
       "count": 25
     },
     "border": {
-      "top":1,
-      "left":1,
+      "top":0,
+      "left":0,
       "width": 4,
       "height": 4
     }

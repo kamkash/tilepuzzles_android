@@ -35,20 +35,20 @@ struct GameUtil {
       int j = trand(0, i);
       T& tilei = tiles[i];
       T& tilej = tiles[j];
-      tilei.swap(tilej);
+      tilei.swap(&tilej);
     }
   }
 
   static constexpr float LOW_X = -1.F;
   static constexpr float HIGH_X = 1.F;
   static constexpr float LOW_Y = -1.F;
-  static constexpr float HIGH_Y = .7F;
-  static constexpr float TILE_SCALE_FACTOR = .8F;
+  static constexpr float HIGH_Y = 1.F;
+  static constexpr float TILE_SCALE_FACTOR = 1.F;
   static constexpr float BACKGROUND_DEPTH = 0.F;
   static constexpr float TILE_DEPTH = 0.F;
   static constexpr float ANCHOR_DEPTH = 0.4F;
   static constexpr float BORDER_DEPTH = 0.2F;
-  static constexpr float RAISED_TILE_DEPTH = 0.3F;
+  static constexpr float RAISED_TILE_DEPTH = 0.9F;
 };
 
 } // namespace tilepuzzles

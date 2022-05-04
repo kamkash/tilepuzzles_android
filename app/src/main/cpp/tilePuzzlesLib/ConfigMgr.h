@@ -7,8 +7,8 @@
 #include "GLogger.h"
 #endif
 
-#include <filesystem>
 #include "ResourceUtil.h"
+#include <filesystem>
 
 using json = nlohmann::json;
 
@@ -26,11 +26,11 @@ struct ConfigMgr {
         init(jsonStr);
     }
 
-    ConfigMgr(std::string &jsonStr) {
+  ConfigMgr(std::string& jsonStr) {
         init(jsonStr);
     }
 
-    void init(const std::string &jsonStr) {
+  void init(const std::string& jsonStr) {
         config = json::parse(jsonStr);
     }
 

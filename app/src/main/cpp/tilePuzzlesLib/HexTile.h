@@ -19,6 +19,8 @@
 #include <math/mathfwd.h>
 #include <math/vec2.h>
 
+#include "TileDto.h"
+
 namespace tilepuzzles {
 
 struct HexTile : Tile {
@@ -34,7 +36,9 @@ struct HexTile : Tile {
     this->depth = depth;
     initVertices(texIndex, texWidth);
     initIndices(indexOffset);
-    logVertices();
+  }
+
+  HexTile(const std::string& id) : Tile(id) {
   }
 
   virtual void initIndices(int indexOffset) {
@@ -46,6 +50,81 @@ struct HexTile : Tile {
   bool shiftColumnGroup() {
     float shift = trunc(gridCoord.y / 3.);
     return ((int)shift % 2);
+  }
+
+  virtual void assign(HexTile* other) {
+    topLeft = other->topLeft;
+    gridCoord = other->gridCoord;
+
+    (*triangleVertices)[0].position = (*other->triangleVertices)[0].position;
+    (*triangleVertices)[1].position = (*other->triangleVertices)[1].position;
+    (*triangleVertices)[2].position = (*other->triangleVertices)[2].position;
+
+    (*iniTriangleVertices)[0].position = (*other->iniTriangleVertices)[0].position;
+    (*iniTriangleVertices)[1].position = (*other->iniTriangleVertices)[1].position;
+    (*iniTriangleVertices)[2].position = (*other->iniTriangleVertices)[2].position;
+  }
+
+  void assign(const TileDto& dto) {
+    topLeft = dto.topLeft;
+    gridCoord = dto.gridCoord;
+
+    (*triangleVertices)[0].position = (*dto.triangleVertices)[0].position;
+    (*triangleVertices)[1].position = (*dto.triangleVertices)[1].position;
+    (*triangleVertices)[2].position = (*dto.triangleVertices)[2].position;
+
+    (*iniTriangleVertices)[0].position = (*dto.iniTriangleVertices)[0].position;
+    (*iniTriangleVertices)[1].position = (*dto.iniTriangleVertices)[1].position;
+    (*iniTriangleVertices)[2].position = (*dto.iniTriangleVertices)[2].position;
+  }
+
+  virtual void translate(Direction dir, int rows, int columns) {
+    float delta = 2. * size.y;
+    float shift = 0.5 * size.y;
+
+    (*triangleVertices)[0].position.y += delta;
+    (*triangleVertices)[1].position.y += delta;
+    (*triangleVertices)[2].position.y += delta;
+
+    if ((*triangleVertices)[0].position.y > 1. || (*triangleVertices)[1].position.y > 1. ||
+        (*triangleVertices)[2].position.y > 1.) {
+      (*triangleVertices)[0].position.y = 1. - (*triangleVertices)[0].position.y - shift;
+      (*triangleVertices)[1].position.y = 1. - (*triangleVertices)[1].position.y - shift;
+      (*triangleVertices)[2].position.y = 1. - (*triangleVertices)[2].position.y - shift;
+    }
+
+    switch (dir) {
+      case Direction::up: {
+        gridCoord = {gridCoord.x, gridCoord.y - 1};
+        if (gridCoord.y < 0) {
+          gridCoord.y = rows - 1;
+        }
+        break;
+      }
+      case Direction::down: {
+        gridCoord = {gridCoord.x, gridCoord.y + 1};
+        if (gridCoord.y > rows - 1) {
+          gridCoord.y = 0;
+        }
+        break;
+      }
+      case Direction::left: {
+        gridCoord = {gridCoord.x - 1, gridCoord.y};
+        if (gridCoord.x < 0) {
+          gridCoord.x = columns - 1;
+        }
+        break;
+      }
+      case Direction::right: {
+        gridCoord = {gridCoord.x + 1, gridCoord.y};
+        if (gridCoord.x > columns - 1) {
+          gridCoord.x = 0;
+        }
+        break;
+      }
+      default:
+        break;
+    }
   }
 
   virtual void updateVertices() {
@@ -113,8 +192,7 @@ struct HexTile : Tile {
   }
 
   virtual void setVertexZCoord(float zCoord) {
-      (*triangleVertices)[0].position.z = zCoord;
-      (*triangleVertices)[1].position.z = zCoord;
+    (*triangleVertices)[0].position.z = (*triangleVertices)[1].position.z =
       (*triangleVertices)[2].position.z = zCoord;
     }
 
@@ -153,10 +231,10 @@ struct HexTile : Tile {
 
   virtual void logVertices() const {
 #ifdef USE_SDL
-    L.info("TileId %s groupKey %s", tileId.c_str(), groupKey.c_str());
-    L.info("Grid Coord: %f %f", gridCoord.x, gridCoord.y);
+    L.info("TileId groupKey", tileId.c_str(), groupKey.c_str());
+    L.info("Grid Coord:", gridCoord.x, gridCoord.y);
     std::for_each(std::begin(*triangleVertices), std::end(*triangleVertices),
-                  [](const Vertex& v) { L.info("pos: %f %f", v.position[0], v.position[1]); });
+                  [](const Vertex& v) { L.info("pos:", v.position[0], v.position[1]); });
 #endif
   }
 
@@ -182,25 +260,53 @@ struct HexTile : Tile {
     return (*triangleVertices)[2].position[1] < (*triangleVertices)[0].position[1];
   }
 
-  bool hasVertex(const math::float2& vert) {
+  virtual bool hasVertex(const math::float2& vert) {
     return (abs(getVert(0).x - vert.x) <= EPS && abs(getVert(0).y - vert.y) <= EPS) ||
            (abs(getVert(1).x - vert.x) <= EPS && abs(getVert(1).y - vert.y) <= EPS) ||
            (abs(getVert(2).x - vert.x) <= EPS && abs(getVert(2).y - vert.y) <= EPS);
   }
 
-  math::float3 getVert(int index) {
+  virtual math::float3 getVert(int index) {
     return (*triangleVertices)[index].position;
+  }
+
+  std::unique_ptr<TriangleVertices> cloneTriangleVertices() const {
+    TriangleVertices* clonedVertices = (TriangleVertices*)malloc(3 * sizeof(Vertex));
+    memcpy(clonedVertices, triangleVertices, 3 * sizeof(Vertex));
+    return std::unique_ptr<TriangleVertices>(clonedVertices);
+  }
+
+  std::unique_ptr<TriangleVertices> cloneIniTriangleVertices() const {
+    TriangleVertices* clonedVertices = (TriangleVertices*)malloc(3 * sizeof(Vertex));
+    memcpy(clonedVertices, iniTriangleVertices, 3 * sizeof(Vertex));
+    return std::unique_ptr<TriangleVertices>(clonedVertices);
+  }
+
+  std::unique_ptr<TriangleIndices> cloneTriangleIndices() const {
+    TriangleIndices* clonedIndices = (TriangleIndices*)malloc(3 * sizeof(uint16_t));
+    memcpy(clonedIndices, triangleIndices, 3 * sizeof(uint16_t));
+    return std::unique_ptr<TriangleIndices>(clonedIndices);
+  }
+
+  TileDto clone() const {
+    TileDto dto;
+    dto.triangleVertices = cloneTriangleVertices();
+    dto.iniTriangleVertices = cloneIniTriangleVertices();
+    dto.triangleIndices = cloneTriangleIndices();
+    dto.size = size;
+    dto.tileId = tileId;
+    dto.gridCoord = gridCoord;
+    return std::move(dto);
   }
 
   TriangleVertices* triangleVertices;
   TriangleIndices* triangleIndices;
   TriangleVertices* iniTriangleVertices = nullptr;
+  std::string groupKey;
 #ifndef __ANDROID__
   constexpr static Logger L = Logger::getLogger();
 #endif
-  constexpr static float EPS = 0.001F;
-  std::string groupKey;
-}; // namespace tilepuzzles
+};
 
 } // namespace tilepuzzles
 

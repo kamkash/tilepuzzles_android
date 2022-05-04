@@ -11,6 +11,7 @@ void init(GameContext *gameContext);
 void destroy();
 void gameLoop(long frameTimeNanos);
 void render();
+void shuffle();
 void destroySwapChain();
 void createSwapChain(void *nativeWin);
 void resizeWindow(int width, int height);

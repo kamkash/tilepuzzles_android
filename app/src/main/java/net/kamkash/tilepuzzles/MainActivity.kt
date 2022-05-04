@@ -5,25 +5,68 @@ import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.GestureDetectorCompat
 import net.kamkash.tilepuzzles.databinding.ActivityMainBinding
 
 
 class MainActivity : AppCompatActivity(), Choreographer.FrameCallback {
     private val LOG_TAG = "MainActivity"
     private lateinit var mSurfaceView: SurfaceView
+    private lateinit var imageButton1: ImageButton
+    private lateinit var imageButton2: ImageButton
     private lateinit var mUiHelper: TUiHelper
     private var mVisisbleFrame: Rect = Rect()
-    private var toolbarHeight: Int = 0
+    private lateinit var binding: ActivityMainBinding
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(LOG_TAG, "MainActivity::onCreate()")
         Log.d(LOG_TAG, "MainActivity::onCreate() JNI call ${stringFromJNI()}")
 
-        mSurfaceView = SurfaceView(this)
-        setContentView(mSurfaceView)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        mSurfaceView = findViewById(R.id.surfaceView)
+        imageButton1 = findViewById(R.id.imageButton1)
+        imageButton2 = findViewById(R.id.imageButton2)
+
+
+        imageButton1.setOnClickListener {
+            Log.d(LOG_TAG, "........ Shuffle")
+            shuffle()
+        }
+
+        val listener: View.OnTouchListener = View.OnTouchListener { v, event ->
+            when (event!!.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    Log.d(LOG_TAG, "Action was DOWN: ${event.x}, ${event.y}")
+                    touchAction(event.action, event.x, event.y)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    Log.d(LOG_TAG, "Action was MOVE: ${event.x}, ${event.y}")
+                    touchAction(event.action, event.x, event.y)
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    Log.d(LOG_TAG, "Action was UP: ${event.x}, ${event.y}")
+                    touchAction(event.action, event.x, event.y)
+                    v.performClick()
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    Log.d(LOG_TAG, "Action was CANCEL")
+                    true
+                }
+                MotionEvent.ACTION_OUTSIDE -> {
+                    Log.d(LOG_TAG, "Movement occurred outside bounds of current screen element")
+                    true
+                }
+                else -> true
+            }
+        }
+        mSurfaceView.setOnTouchListener(listener)
         initUiHelper()
         windowVisibleDisplayFrame()
     }
@@ -51,7 +94,6 @@ class MainActivity : AppCompatActivity(), Choreographer.FrameCallback {
 
             override fun onResized(width: Int, height: Int) {
                 Log.d(LOG_TAG, "resizeWindow: $width, $height")
-                toolbarHeight = mVisisbleFrame.height() - height
                 resizeWindow(width, height)
             }
         })
@@ -85,35 +127,6 @@ class MainActivity : AppCompatActivity(), Choreographer.FrameCallback {
         Choreographer.getInstance().postFrameCallback(this)
     }
 
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        return when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                Log.d(LOG_TAG, "Action was DOWN: ${event.x}, ${event.y}")
-                touchAction(event.action, event.x, event.y - toolbarHeight)
-                true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                Log.d(LOG_TAG, "Action was MOVE: ${event.x}, ${event.y}")
-                touchAction(event.action, event.x, event.y - toolbarHeight)
-                true
-            }
-            MotionEvent.ACTION_UP -> {
-                Log.d(LOG_TAG, "Action was UP: ${event.x}, ${event.y}")
-                touchAction(event.action, event.x, event.y - toolbarHeight)
-                true
-            }
-            MotionEvent.ACTION_CANCEL -> {
-                Log.d(LOG_TAG, "Action was CANCEL")
-                true
-            }
-            MotionEvent.ACTION_OUTSIDE -> {
-                Log.d(LOG_TAG, "Movement occurred outside bounds of current screen element")
-                true
-            }
-            else -> super.onTouchEvent(event)
-        }
-    }
-
     /**
      * Native methods that are implemented by the 'tilepuzzles' native library,
      * which is packaged with this application.
@@ -124,6 +137,7 @@ class MainActivity : AppCompatActivity(), Choreographer.FrameCallback {
     external fun resizeWindow(width: Int, height: Int): Unit
     external fun init(assetManager: AssetManager): Unit
     external fun destroy(): Unit
+    external fun shuffle(): Unit
     external fun gameLoop(frameTimeNanos: Long): Unit
     external fun touchAction(action: Int, rawX: Float, rawY: Float): Unit
 
