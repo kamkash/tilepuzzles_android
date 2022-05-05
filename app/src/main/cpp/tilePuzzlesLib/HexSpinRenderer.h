@@ -287,8 +287,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
   void logGroupDepth(const std::string& msg) {
     std::for_each(dragAnchor.tileGroup.begin(), dragAnchor.tileGroup.end(), [this](HexTile& t) {
-//      L.info((*t.triangleVertices)[0].position.z, (*t.triangleVertices)[1].position.z,
-//             (*t.triangleVertices)[2].position.z);
     });
   }
 
@@ -311,7 +309,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     "type":"HexSpinner",
       "dimension": {
         "rows": 2,
-        "columns": 3
+        "columns": 2
       }
   })";
 };
