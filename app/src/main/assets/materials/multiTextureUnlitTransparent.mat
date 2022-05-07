@@ -1,0 +1,44 @@
+material {
+    name : BakedTexture,
+    parameters : [
+        { type : sampler2d, name : albedo },
+        { type : sampler2d, name : albedo1 },
+        { type: float, name: alpha }                
+    ],
+    variables: [
+        samplerNumber
+    ],
+    requires : [
+        uv0,
+        custom0
+    ],
+    culling : frontAndBack,
+//    culling : none,
+    colorWrite: true,
+    depthWrite: true,
+    depthCulling : true,
+    shadingModel : unlit,
+    blending : transparent,
+    transparency : twoPassesTwoSides
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+       float4 p = getCustom0();
+       material.samplerNumber = p;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_albedo1, getUV0());
+        if (variable_samplerNumber.x != 0.F) {
+            material.baseColor = texture(materialParams_albedo1, getUV0());
+        } else {
+            material.baseColor = texture(materialParams_albedo, getUV0());
+        }
+        material.baseColor.rgb = material.baseColor.rgb * material.baseColor.a * materialParams.alpha;
+        material.baseColor.a = material.baseColor.a * materialParams.alpha;        
+    }
+}
