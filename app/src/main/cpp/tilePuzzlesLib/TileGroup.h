@@ -9,6 +9,7 @@ struct TileGroup {
   std::vector<T> tileGroup;
   bool dragable;
   math::int2 gridCoord;
+  Tile* anchorTile;
 
   TileGroup() {
   }

@@ -55,6 +55,7 @@ struct GeoUtil {
 
   static constexpr float EPS = 0.01F;
   static constexpr float EPS_3 = EPS * 3.F;
+  static constexpr float EPS_6 = 2.F * EPS_3;
   static constexpr float PI_3 = math::F_PI / 3.;
 };
 } // namespace tilepuzzles

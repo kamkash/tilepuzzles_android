@@ -22,44 +22,44 @@ namespace tilepuzzles {
 
 struct RollerRenderer : TRenderer<TQuadVertexBuffer, Tile> {
 
-    RollerRenderer() {
-        mesh = std::shared_ptr<Mesh<TQuadVertexBuffer, Tile>>(new RollerMesh());
-    }
+  RollerRenderer() {
+    mesh = std::shared_ptr<Mesh<TQuadVertexBuffer, Tile>>(new RollerMesh());
+  }
 
     virtual void onMouseMove(const float2 &dragPosition) {
-        math::float3 clipCoord = normalizeViewCoord(dragPosition);
+    math::float3 clipCoord = normalizeViewCoord(dragPosition);
         Tile *newTile = mesh->hitTest(clipCoord);
-        if (newTile && dragTile && !newTile->equals(dragTile)) {
-            Direction dir = dragTile->directionTo(newTile);
-            if (dir != Direction::none) {
-                mesh->rollTiles(*dragTile, dir);
-                needsDraw = true;
-            }
-        }
+    if (newTile && dragTile && !newTile->equals(dragTile)) {
+      Direction dir = dragTile->directionTo(newTile);
+      if (dir != Direction::none) {
+        mesh->rollTiles(*dragTile, dir);
+        needsDraw = true;
+      }
     }
+  }
 
     virtual Tile *onMouseDown(const math::float2 &pos) {
-        math::float3 clipCoord = normalizeViewCoord(pos);
-        dragTile = mesh->hitTest(clipCoord);
-        return dragTile;
-    }
+    math::float3 clipCoord = normalizeViewCoord(pos);
+    dragTile = mesh->hitTest(clipCoord);
+    return dragTile;
+  }
 
     virtual Tile *onRightMouseDown(const float2 &viewCoord) {
-        math::float3 clipCoord = normalizeViewCoord(viewCoord);
+    math::float3 clipCoord = normalizeViewCoord(viewCoord);
         Tile *tile = mesh->hitTest(clipCoord);
-        return tile;
-    }
+    return tile;
+  }
 
     virtual Tile *onMouseUp(const math::float2 &pos) {
-        dragTile = nullptr;
-        math::float3 clipCoord = normalizeViewCoord(pos);
+    dragTile = nullptr;
+    math::float3 clipCoord = normalizeViewCoord(pos);
         Tile *tile = mesh->hitTest(clipCoord);
-        return tile;
-    }
+    return tile;
+  }
 
-    virtual void initMesh() {
-        mesh->init(CFG);
-    }
+  virtual void initMesh() {
+    mesh->init(CFG);
+  }
 
     static constexpr const char *CFG = R"({
     "type":"roller",
@@ -73,6 +73,19 @@ struct RollerRenderer : TRenderer<TQuadVertexBuffer, Tile> {
       "height": 4
     }
   })";
+
+  //    static constexpr const char *CFG = R"({
+  //    "type":"roller",
+  //    "dimension": {
+  //      "count": 25
+  //    },
+  //    "border": {
+  //      "top":0,
+  //      "left":0,
+  //      "width": 4,
+  //      "height": 4
+  //    }
+  //  })";
 
 }; // namespace tilepuzzles
 

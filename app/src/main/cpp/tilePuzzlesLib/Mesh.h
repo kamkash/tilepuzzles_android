@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <ctime>
 
+#include "AnchorTile.h"
 #include "App.h"
 #include "TVertexBuffer.h"
 #include "Tile.h"
@@ -124,7 +125,7 @@ struct Mesh {
     auto iter =
       std::find_if(tileGroupAnchors.begin(), tileGroupAnchors.end(), [&clipCoord](const auto& anch) {
         math::float2 point = anch.anchorPoint;
-        return abs(point.x - clipCoord.x) <= GeoUtil::EPS_3 && abs(point.y - clipCoord.y) <= GeoUtil::EPS_3;
+        return abs(point.x - clipCoord.x) <= GeoUtil::EPS_6 && abs(point.y - clipCoord.y) <= GeoUtil::EPS_6;
       });
     if (iter != tileGroupAnchors.end()) {
       return &*iter;
@@ -241,8 +242,6 @@ struct Mesh {
   }
 
   virtual void processAnchorGroups() {
-    collectAnchors();
-    orderAnchorGroups();
   }
 
   virtual void orderAnchorGroups() {
@@ -262,7 +261,7 @@ struct Mesh {
   std::vector<T> borderTiles;
 
   std::shared_ptr<TQuadVertexBuffer> vertexBufferAnchors;
-  std::vector<Tile> anchorTiles;
+  std::vector<AnchorTile> anchorTiles;
   std::vector<TileGroup<T>> tileGroupAnchors;
 
 #ifdef USE_SDL

@@ -134,9 +134,9 @@ struct TAppWin {
   }
 
   void createRenderer() {
-    //     renderer = std::shared_ptr<IRenderer>(new SliderRenderer());
-    renderer = std::shared_ptr<IRenderer>(new RollerRenderer());
-    // renderer = std::shared_ptr<IRenderer>(new HexSpinRenderer());
+    // renderer = std::shared_ptr<IRenderer>(new SliderRenderer());
+    // renderer = std::shared_ptr<IRenderer>(new RollerRenderer());
+    renderer = std::shared_ptr<IRenderer>(new HexSpinRenderer());
   }
 
   /**

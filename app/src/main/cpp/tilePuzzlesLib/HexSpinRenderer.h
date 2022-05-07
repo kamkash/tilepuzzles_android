@@ -203,19 +203,30 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     return path;
   }
 
+  virtual Path getAnchor2TexturePath() {
+    Path path = IOUtil::getTexturePath("gear2.png");
+    return path;
+  }
+
   virtual void draw() {
     TRenderer::draw();
     drawAnchors();
   }
 
   void drawAnchors() {
+    static_assert(sizeof(Vertex) == (4 * 3) + (4 * 3) + (4 * 2), "Strange vertex size.");
+
+    Path matPath = getAnchorMaterialPath();
+    std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
+    anchMaterial = Material::Builder().package(mat.data(), mat.size()).build(*engine);
+    anchMatInstance = anchMaterial->createInstance();
+    
+    ///////////////////////////// albedo
     Path path = getAnchorTexturePath();
     IOUtil::img_data data = IOUtil::imageLoad(path.c_str(), 4);
     Texture::PixelBufferDescriptor buffer(data.data, size_t(data.width * data.height * 4),
                                           Texture::Format::RGBA, Texture::Type::UBYTE,
                                           (Texture::PixelBufferDescriptor::Callback) & ::stbi_image_free);
-
-    static_assert(sizeof(Vertex) == (4 * 3) + (4 * 3) + (4 * 2), "Strange vertex size.");
     anchTex = Texture::Builder()
                 .width(uint32_t(data.width))
                 .height(uint32_t(data.height))
@@ -225,11 +236,33 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
                 .build(*engine);
     anchTex->setImage(*engine, 0, std::move(buffer));
     TextureSampler sampler(MinFilter::LINEAR, MagFilter::LINEAR);
+    anchMatInstance->setParameter("albedo", anchTex, sampler);
+
+
+    ///////////////////////////// albedo1
+    path = getAnchor2TexturePath();
+    data = IOUtil::imageLoad(path.c_str(), 4);
+    Texture::PixelBufferDescriptor buffer1(data.data, size_t(data.width * data.height * 4),
+                                           Texture::Format::RGBA, Texture::Type::UBYTE,
+                                           (Texture::PixelBufferDescriptor::Callback) & ::stbi_image_free);
+    anchTex1 = Texture::Builder()
+                 .width(uint32_t(data.width))
+                 .height(uint32_t(data.height))
+                 .levels(1)
+                 .sampler(Texture::Sampler::SAMPLER_2D)
+                 .format(Texture::InternalFormat::RGBA8)
+                 .build(*engine);
+    anchTex1->setImage(*engine, 0, std::move(buffer1));
+    TextureSampler sampler1(MinFilter::LINEAR, MagFilter::LINEAR);
+    anchMatInstance->setParameter("albedo1", anchTex1, sampler1);
+
+
     // Create quad renderable
     anchVb = VertexBuffer::Builder()
                .vertexCount(mesh->vertexBufferAnchors->numVertices)
                .bufferCount(1)
                .attribute(VertexAttribute::POSITION, 0, VertexBuffer::AttributeType::FLOAT3, 0, 32)
+               .attribute(VertexAttribute::CUSTOM0, 0, VertexBuffer::AttributeType::FLOAT3, 12, 32)
                .attribute(VertexAttribute::UV0, 0, VertexBuffer::AttributeType::FLOAT3, 24, 32)
                .build(*engine);
     anchVb->setBufferAt(*engine, 0,
@@ -243,11 +276,8 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
                       IndexBuffer::BufferDescriptor(mesh->vertexBufferAnchors->indexShapes,
                                                     mesh->vertexBufferAnchors->getIndexSize(), nullptr));
 
-    Path matPath = getAnchorMaterialPath();
-    std::vector<unsigned char> mat = IOUtil::loadBinaryAsset(matPath.c_str());
-    anchMaterial = Material::Builder().package(mat.data(), mat.size()).build(*engine);
-    anchMatInstance = anchMaterial->createInstance();
-    anchMatInstance->setParameter("albedo", anchTex, sampler);
+
+
     anchMatInstance->setParameter("alpha", 1.f);
 
     anchRenderable = EntityManager::get().create();
@@ -279,6 +309,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     engine->destroy(anchRenderable);
     engine->destroy(anchMatInstance);
     engine->destroy(anchTex);
+    engine->destroy(anchTex1);
     engine->destroy(anchMaterial);
     engine->destroy(anchVb);
     engine->destroy(anchIb);
@@ -286,8 +317,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
   }
 
   void logGroupDepth(const std::string& msg) {
-    std::for_each(dragAnchor.tileGroup.begin(), dragAnchor.tileGroup.end(), [this](HexTile& t) {
-    });
+    std::for_each(dragAnchor.tileGroup.begin(), dragAnchor.tileGroup.end(), [this](HexTile& t) {});
   }
 
   VertexBuffer* anchVb;
@@ -296,6 +326,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
   Entity anchLight;
   MaterialInstance* anchMatInstance = nullptr;
   Texture* anchTex;
+  Texture* anchTex1;
 
   TileGroup<HexTile> dragAnchor;
   math::float2 dragPoint;
@@ -308,8 +339,8 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
   static constexpr const char* CFG = R"({
     "type":"HexSpinner",
       "dimension": {
-        "rows": 2,
-        "columns": 2
+        "rows": 3,
+        "columns": 3
       }
   })";
 };

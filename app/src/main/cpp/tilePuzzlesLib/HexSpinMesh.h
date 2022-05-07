@@ -5,6 +5,7 @@
 #include "GLogger.h"
 #endif
 
+#include "AnchorTile.h"
 #include "GameUtil.h"
 #include "GeoUtil.h"
 #include "HexTile.h"
@@ -30,6 +31,7 @@ struct HexSpinMesh : Mesh<TriangleVertexBuffer, HexTile> {
     if (anchCount) {
       vertexBufferAnchors.reset(new TQuadVertexBuffer(anchCount));
       initAnchors();
+      updateDraggableAnchors();
     }
   }
 
@@ -75,6 +77,11 @@ struct HexSpinMesh : Mesh<TriangleVertexBuffer, HexTile> {
       }
     }
     processAnchorGroups();
+  }
+
+  virtual void processAnchorGroups() {
+    collectAnchors();
+    orderAnchorGroups();
   }
 
   virtual void collectAnchors() {
@@ -181,7 +188,11 @@ struct HexSpinMesh : Mesh<TriangleVertexBuffer, HexTile> {
   void initAnchors() {
     int rows = configMgr.config["dimension"]["rows"].get<int>();
     int columns = configMgr.config["dimension"]["columns"].get<int>();
-    const float a = (GameUtil::HIGH_X - GameUtil::LOW_X) / columns / 2. / 4.;
+    const int tileCount = getTileCount();
+    const int dim = sqrt(tileCount);
+    const Size tileSize = {(GameUtil::HIGH_X - GameUtil::LOW_X) / dim * GameUtil::TILE_SCALE_FACTOR,
+                           (GameUtil::HIGH_Y - GameUtil::LOW_Y) / dim * GameUtil::TILE_SCALE_FACTOR};
+    const float a = tileSize.x / 2.F;
     Size anchSize = {a, a};
     int anchIndex = 0;
     int indexOffset = 0;
@@ -193,14 +204,36 @@ struct HexSpinMesh : Mesh<TriangleVertexBuffer, HexTile> {
                     topLeft.y = anchPoint.y + anchSize.y / 2.;
                     topLeft.x = anchPoint.x - anchSize.x / 2.;
                     const std::string tileId = string("anch") + to_string(anchIndex);
-                    Tile tile(tileId, topLeft, anchSize, &vertexBufferAnchors->get(anchIndex),
+                    AnchorTile tile(tileId, topLeft, anchSize, &vertexBufferAnchors->get(anchIndex),
                               &vertexBufferAnchors->getIndex(anchIndex), 0, texWidth, indexOffset,
                               {anchIndex, 0}, anchIndex + 1, GameUtil::ANCHOR_DEPTH);
+                    tile.anchorPoint = anchPoint;
                     anchorTiles.push_back(tile);
-                    tile.setVertexZCoord(.1);
                     ++anchIndex;
                     indexOffset += 4;
                   });
+  }
+
+  void updateDraggableAnchors() {
+    std::for_each(tileGroupAnchors.begin(), tileGroupAnchors.end(), [this](const auto& tileGroup) {
+      if (tileGroup.dragable) {
+        AnchorTile* anchTile = anchorTileAt(tileGroup.anchorPoint);
+        if (anchTile) {
+          anchTile->updateNormals({1.0F, 1.0F, 1.0F});
+        }
+      }
+    });
+  }
+
+  AnchorTile* anchorTileAt(const math::float2& anchorPoint) {
+    auto tileIter = std::find_if(anchorTiles.begin(), anchorTiles.end(),
+                                 [&anchorPoint](const auto& t) { return t.hasAnchorPoint(anchorPoint); });
+
+    if (tileIter != anchorTiles.end()) {
+      return &*tileIter;
+    } else {
+      return nullptr;
+    }
   }
 
   virtual void rotateTileGroup(TileGroup<HexTile>& tileGroup, float angle) {

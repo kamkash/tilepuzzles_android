@@ -127,6 +127,11 @@ struct HexTile : Tile {
     }
   }
 
+  virtual void updateNormals(const math::float3 norm) {
+    (*triangleVertices)[0].normal = (*triangleVertices)[1].normal =
+      (*triangleVertices)[2].normal = norm;
+  }
+
   virtual void updateVertices() {
     if (shiftColumnGroup()) {
       topLeft[1] -= size[1];

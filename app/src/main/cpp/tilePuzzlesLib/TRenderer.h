@@ -126,7 +126,7 @@ struct TRenderer : IRenderer {
   }
 
   virtual Path getAnchorMaterialPath() {
-    return IOUtil::getMaterialPath(FILAMAT_FILE_UNLIT.data());
+    return IOUtil::getMaterialPath(FILAMAT_FILE_MULTI_UNLIT.data());
   }
 
   virtual void destroy() {
@@ -519,6 +519,7 @@ struct TRenderer : IRenderer {
   float zoom = 1.f;
 
   static constexpr std::string_view FILAMAT_FILE_UNLIT = "bakedTextureUnlitTransparent.filamat";
+  static constexpr std::string_view FILAMAT_FILE_MULTI_UNLIT = "multiTextureUnlitTransparent.filamat";
   static constexpr std::string_view FILAMAT_FILE_OPAQUE = "bakedTextureOpaque.filamat";
   static constexpr std::string_view FILAMAT_FILE_LIT = "bakedTextureLitTransparent.filamat";
 };
