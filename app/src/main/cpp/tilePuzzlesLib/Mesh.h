@@ -125,23 +125,13 @@ struct Mesh {
     auto iter =
       std::find_if(tileGroupAnchors.begin(), tileGroupAnchors.end(), [&clipCoord](const auto& anch) {
         math::float2 point = anch.anchorPoint;
-        return abs(point.x - clipCoord.x) <= GeoUtil::EPS_6 && abs(point.y - clipCoord.y) <= GeoUtil::EPS_6;
+        return abs(point.x - clipCoord.x) <= GeoUtil::EPS_4 && abs(point.y - clipCoord.y) <= GeoUtil::EPS_4;
       });
     if (iter != tileGroupAnchors.end()) {
       return &*iter;
     } else {
       return nullptr;
     }
-  }
-
-  math::float4 normalizeViewCoord(const App& app, const math::float2& viewCoord) const {
-    math::mat4 projMat = app.camera->getProjectionMatrix();
-    math::mat4 invProjMat = app.camera->inverseProjection(projMat);
-    float width = float(app.view->getViewport().width);
-    float height = float(app.view->getViewport().height);
-    math::float4 normalizedView = {viewCoord.x * 2. / width - 1., viewCoord.y * -2. / height + 1., 0., 1.};
-    math::float4 clipCoord = invProjMat * normalizedView;
-    return clipCoord;
   }
 
   virtual int getTileCount() {

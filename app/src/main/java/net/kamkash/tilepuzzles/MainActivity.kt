@@ -1,6 +1,7 @@
 package net.kamkash.tilepuzzles
 
 import android.content.res.AssetManager
+import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
@@ -27,6 +28,7 @@ class MainActivity : AppCompatActivity(), Choreographer.FrameCallback {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        window.decorView.setBackgroundColor(Color.WHITE);
         mSurfaceView = findViewById(R.id.surfaceView)
         imageButton1 = findViewById(R.id.imageButton1)
         imageButton2 = findViewById(R.id.imageButton2)

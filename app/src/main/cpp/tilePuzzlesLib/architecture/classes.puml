@@ -1,7 +1,10 @@
 @startuml hello
-Engine --> "creates" Camera
+class Skybox
+Engine --> "creates" Scene
 Engine --> "creates" View
-View *-- "1" Scene
+Engine --> "creates" Camera
+Scene -- Skybox
+Scene *-- "n" View
 View *-- "1" Camera
 Scene *-- "n" Entity
 Material "1" .. "*" MaterialInstance

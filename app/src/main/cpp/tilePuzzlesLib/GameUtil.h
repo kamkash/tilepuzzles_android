@@ -49,6 +49,12 @@ struct GameUtil {
   static constexpr float ANCHOR_DEPTH = 0.4F;
   static constexpr float BORDER_DEPTH = 0.2F;
   static constexpr float RAISED_TILE_DEPTH = 0.9F;
+  static constexpr int LEFT_OFFSET = 320;
+  static constexpr int BOTTOM_OFFSET = 0;
+  static constexpr int WINDOW_WIDTH = 640;
+  static constexpr int WINDOW_HEIGHT = 320;
+  static constexpr int WINDOW_X_POS = 300;
+  static constexpr int WINDOW_Y_POS = 300;
 };
 
 } // namespace tilepuzzles

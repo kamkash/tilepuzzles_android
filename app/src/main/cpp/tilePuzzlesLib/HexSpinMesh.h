@@ -192,7 +192,7 @@ struct HexSpinMesh : Mesh<TriangleVertexBuffer, HexTile> {
     const int dim = sqrt(tileCount);
     const Size tileSize = {(GameUtil::HIGH_X - GameUtil::LOW_X) / dim * GameUtil::TILE_SCALE_FACTOR,
                            (GameUtil::HIGH_Y - GameUtil::LOW_Y) / dim * GameUtil::TILE_SCALE_FACTOR};
-    const float a = tileSize.x / 2.F;
+    const float a = tileSize.x / 1.5F;
     Size anchSize = {a, a};
     int anchIndex = 0;
     int indexOffset = 0;

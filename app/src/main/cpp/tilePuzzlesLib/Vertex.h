@@ -21,5 +21,15 @@ using TriangleIndices = uint16_t[3];
 using Point = filament::math::float2;
 using Size = filament::math::float2;
 
+struct Rect {
+  Point topLeft;
+  Size size;
+};
+
+struct ViewportLayout {
+  filament::math::float2 dimFractions;
+  filament::math::float2 offsetFractions;
+};
+
 } // namespace tilepuzzles
 #endif

@@ -26,28 +26,32 @@ struct SliderRenderer : TRenderer<TQuadVertexBuffer, Tile> {
         mesh = std::shared_ptr<Mesh<TQuadVertexBuffer, Tile>>(new SliderMesh());
     }
 
-    virtual void onMouseMove(const float2 &dragPosition) {
+  virtual void onMouseMove(const float2& dragPosition) {
     }
 
-    virtual Tile *onMouseUp(const float2 &pos) {
+  virtual Tile* onMouseUp(const float2& pos) {
         math::float3 clipCoord = normalizeViewCoord(pos);
-        Tile *tile = mesh->hitTest(clipCoord);
+    Tile* tile = mesh->hitTest(clipCoord);
         return tile;
     }
 
-    virtual Tile *onMouseDown(const float2 &pos) {
+  virtual Tile* onMouseDown(const float2& pos) {
         math::float3 clipCoord = normalizeViewCoord(pos);
-        Tile *tile = mesh->hitTest(clipCoord);
-        if (tile) {
+    Tile* tile = mesh->hitTest(clipCoord);
+    if (tile && !readOnly) {
             mesh->slideTiles(*tile);
             needsDraw = true;
         }
         return tile;
     }
 
-    virtual Tile *onRightMouseDown(const float2 &viewCoord) {
+  virtual Tile* onRightMouseDown(const float2& viewCoord) {
+    if (!readOnly) {
+      mesh->shuffle();
+      needsDraw = true;
+    }
         math::float3 clipCoord = normalizeViewCoord(viewCoord);
-        Tile *tile = mesh->hitTest(clipCoord);
+    Tile* tile = mesh->hitTest(clipCoord);
         return tile;
     }
 
@@ -55,17 +59,24 @@ struct SliderRenderer : TRenderer<TQuadVertexBuffer, Tile> {
         mesh->init(CFG);
     }
 
-    static constexpr const char *CFG = R"({
+  // static constexpr const char* CFG = R"({
+  //   "type":"slider",
+  //     "dimension": {
+  //       "count": 24
+  //     }    ,
+  //   "border": {
+  //     "top":1,
+  //     "left":0,
+  //     "width": 4,
+  //     "height": 4
+  //   }
+  // })";
+
+  static constexpr const char* CFG = R"({
     "type":"slider",
       "dimension": {
-        "count": 24
-      }    ,
-    "border": {
-      "top":1,
-      "left":0,
-      "width": 4,
-      "height": 4
-    }      
+        "count":15 
+      }
   })";
 };
 

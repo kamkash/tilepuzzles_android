@@ -43,11 +43,13 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
   }
 
   virtual HexTile* onRightMouseDown(const float2& viewCoord) {
+    math::float3 clipCoord = normalizeViewCoord(viewCoord);
+    if (!readOnly) {
     mesh->shuffle();
     mesh->processAnchorGroups();
-    math::float3 clipCoord = normalizeViewCoord(viewCoord);
-    HexTile* tile = mesh->hitTest(clipCoord);
     needsDraw = true;
+    }
+    HexTile* tile = mesh->hitTest(clipCoord);
     return tile;
   }
 
@@ -93,7 +95,8 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
       float dist = distance(clipCoord, math::float3(dragPoint.x, dragPoint.y, 0.F));
       if (dist > dragTile->size.x) {
         Direction dir = dx > dy ? (clipCoord.x - dragPoint.x > 0) ? Direction::right : Direction::left
-                                : (clipCoord.y - dragPoint.y > 0) ? Direction::up : Direction::down;
+                        : (clipCoord.y - dragPoint.y > 0) ? Direction::up
+                                                          : Direction::down;
         mesh->rollTileGroups(dragAnchor, dir);
         dragPoint = math::float2(clipCoord.x, clipCoord.y);
         needsDraw = true;
@@ -103,7 +106,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
   virtual void onMouseMove(const float2& dragPosition) {
     math::float3 clipCoord = normalizeViewCoord(dragPosition);
-    if (dragTile) {
+    if (dragTile && !readOnly) {
       if (dragAction == DragAction::TileDrag) {
         handleTileDrag(clipCoord);
       } else if (dragAction == DragAction::AnchorDrag) {
@@ -115,6 +118,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
   virtual HexTile* onMouseDown(const math::float2& pos) {
     math::float3 clipCoord = normalizeViewCoord(pos);
     dragTile = mesh->hitTest(clipCoord);
+    if (!readOnly) {
     auto anch = mesh->hitTestAnchor(clipCoord);
     if (anch) {
       dragAnchor = *anch;
@@ -129,6 +133,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
       math::float3 pNormal = GeoUtil::tcross(anchVec, posVec);
       lastNormalVec = pNormal;
       mesh->setTileGroupZCoord(dragAnchor, GameUtil::RAISED_TILE_DEPTH);
+    }
     }
     return dragTile;
   }
@@ -210,7 +215,9 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
 
   virtual void draw() {
     TRenderer::draw();
+    if (!readOnly) {
     drawAnchors();
+  }
   }
 
   void drawAnchors() {
@@ -238,7 +245,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     TextureSampler sampler(MinFilter::LINEAR, MagFilter::LINEAR);
     anchMatInstance->setParameter("albedo", anchTex, sampler);
 
-
     ///////////////////////////// albedo1
     path = getAnchor2TexturePath();
     data = IOUtil::imageLoad(path.c_str(), 4);
@@ -255,7 +261,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     anchTex1->setImage(*engine, 0, std::move(buffer1));
     TextureSampler sampler1(MinFilter::LINEAR, MagFilter::LINEAR);
     anchMatInstance->setParameter("albedo1", anchTex1, sampler1);
-
 
     // Create quad renderable
     anchVb = VertexBuffer::Builder()
@@ -276,8 +281,6 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
                       IndexBuffer::BufferDescriptor(mesh->vertexBufferAnchors->indexShapes,
                                                     mesh->vertexBufferAnchors->getIndexSize(), nullptr));
 
-
-
     anchMatInstance->setParameter("alpha", 1.f);
 
     anchRenderable = EntityManager::get().create();
@@ -291,21 +294,22 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     scene->addEntity(anchRenderable);
 
     // Add light sources into the scene.
-    utils::EntityManager& em = utils::EntityManager::get();
-    anchLight = em.create();
-    LightManager::Builder(LightManager::Type::SUN)
-      .color({.7, .3, .9})
-      .intensity(200000)
-      .direction({0., 0., 0.6})
-      .sunAngularRadius(.5f)
-      .castShadows(true)
-      .castLight(true)
-      .build(*engine, anchLight);
+    // utils::EntityManager& em = utils::EntityManager::get();
+    // anchLight = em.create();
+    // LightManager::Builder(LightManager::Type::SUN)
+    //   .color({.7, .3, .9})
+    //   .intensity(200000)
+    //   .direction({0., 0., 0.6})
+    //   .sunAngularRadius(.5f)
+    //   .castShadows(true)
+    //   .castLight(true)
+    //   .build(*engine, anchLight);
     // scene->addEntity(anchLight);
   }
 
   virtual void destroy() {
-    engine->destroy(anchLight);
+    if (!readOnly) {
+      // engine->destroy(anchLight);
     engine->destroy(anchRenderable);
     engine->destroy(anchMatInstance);
     engine->destroy(anchTex);
@@ -313,6 +317,7 @@ struct HexSpinRenderer : TRenderer<TriangleVertexBuffer, HexTile> {
     engine->destroy(anchMaterial);
     engine->destroy(anchVb);
     engine->destroy(anchIb);
+    }
     TRenderer::destroy();
   }
 
